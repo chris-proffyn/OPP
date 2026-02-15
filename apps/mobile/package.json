@@ -1,0 +1,9 @@
+{
+  "name": "apps-mobile",
+  "private": true,
+  "version": "0.0.1",
+  "description": "OPP mobile app (React Native / Expo). To be initialised when prioritised.",
+  "scripts": {
+    "dev": "echo 'Mobile app not yet initialised. Use Expo or React Native when ready.'"
+  }
+}

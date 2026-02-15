@@ -1,0 +1,184 @@
+# Proffyn RSD — Cursor Rules (.cursorrules)
+# Status: v1.0 (Baseline)
+# Applies to: All Proffyn Rapid Solution Delivery (RSD) projects
+
+# -------------------------------------------------------------------
+# 0) Purpose
+# -------------------------------------------------------------------
+# This file defines mandatory operating rules for Cursor when working in
+# a Proffyn RSD repository. Cursor must follow these rules strictly.
+
+# -------------------------------------------------------------------
+# 1) Mandatory Reading Order (ALWAYS)
+# -------------------------------------------------------------------
+# Before planning, coding, refactoring, or proposing changes, Cursor MUST:
+#
+# 1. Read: PROJECT_STATUS_TRACKER.md
+# 2. Read: PRODUCT_REQUIREMENTS.md (project-specific)
+# 3. Read: RSD_FOUNDATION_OVERVIEW.md
+# 4. Read: RSD_SYSTEM_ARCHITECTURE.md
+# 5. Read: RSD_UX_DESIGN_FRAMEWORK.md
+# 6. Read: RSD_DATA_MODELLING_GUIDE.md
+# 7. Read: RSD_TESTING_STRATEGY.md
+# 8. Read: RSD_ADMIN_PORTAL_GUIDE.md
+# 9. Read: RSD_DEVELOPMENT_APPROACH.md
+#
+# If any of these files are missing, Cursor must STOP and report which
+# file(s) are missing before proceeding.
+
+
+# -------------------------------------------------------------------
+# OPP Project-Specific Mandatory Reading (ALWAYS)
+# -------------------------------------------------------------------
+# When working inside the OPP Darts Training project,
+# before planning, coding, refactoring, or proposing changes, Cursor MUST:
+# 1. Read: OPP Darts Training Platform - Product Brief.pdf
+# 2. Read: OPP Platform.md
+# 3. Read: OPP_TRAINING_RATING_ENGINE_SPEC_V2.md
+# 4. Read: OPP_MATCH_RATING_ENGINE_SPEC.md
+# 5. Read: OPP Cohort example.md
+#
+# If any of these files are missing, Cursor must STOP and report which
+# file(s) are missing before proceeding.
+
+# -------------------------------------------------------------------
+# 2) Authority & Precedence (CONFLICT RULES)
+# -------------------------------------------------------------------
+# If documents conflict, obey this precedence:
+#
+# 1) .cursorrules
+# 2) PROJECT_STATUS_TRACKER.md
+# 3) PRODUCT_REQUIREMENTS.md
+# 4) DELIVERY_TASK_MAP.md (if present)
+# 5) RSD foundational docs (architecture, UX, data modelling, testing, admin, development)
+#
+# PROJECT_STATUS_TRACKER.md overrides plans and assumptions.
+# PRODUCT_REQUIREMENTS.md overrides generic guidance when explicitly required.
+
+# -------------------------------------------------------------------
+# 3) Execution Discipline
+# -------------------------------------------------------------------
+# Cursor must work in small, atomic steps:
+# - One task at a time
+# - Provide a short plan before making changes
+# - Implement the smallest correct change
+# - Add/Update tests (where required)
+# - Confirm completion criteria
+#
+# Cursor must NOT perform large refactors unless explicitly instructed.
+
+# -------------------------------------------------------------------
+# 4) Repository Boundaries
+# -------------------------------------------------------------------
+# General architectural constraints:
+# - Modular monolith by default
+# - Shared codebase for Web / iOS / Android
+# - Supabase as backend (Auth, Postgres, RLS, Storage)
+# - Netlify for web hosting
+# - GitHub for source control and CI/CD
+#
+# Cursor must not introduce new core technologies or platforms without
+# explicit instruction.
+
+# -------------------------------------------------------------------
+# 5) Data Access Rules (STRICT)
+# -------------------------------------------------------------------
+# - UI code must NOT call Supabase directly.
+# - All Supabase access must go through the data-access layer.
+# - RLS must be enabled on all user-facing tables.
+# - Never use service-role keys in client code.
+# - Any schema change must be via migrations.
+#
+# If a feature requires bypassing these rules, STOP and ask for explicit approval.
+
+# -------------------------------------------------------------------
+# 6) Testing Rules (STRICT)
+# -------------------------------------------------------------------
+# - Jest-based tests are mandatory for core modules and capabilities.
+# - Any material change to behaviour must include tests or updates to tests.
+# - Tests must be deterministic and not flaky.
+# - CI quality gates must remain green.
+#
+# Cursor must not disable tests to "make it pass".
+
+# -------------------------------------------------------------------
+# 7) Error Handling & Logging (REQUIRED)
+# -------------------------------------------------------------------
+# - All async operations must handle failures.
+# - No silent failures.
+# - User-facing errors must be clear and actionable.
+# - System errors must be logged with context where available.
+#
+# Logging must not leak secrets or sensitive data.
+
+# -------------------------------------------------------------------
+# 8) UX Rules (REQUIRED)
+# -------------------------------------------------------------------
+# - Mobile-first, portrait-first decisions
+# - Component reuse over bespoke UI
+# - Accessibility by default (tap targets, contrast, readable errors)
+# - Consistent navigation and interaction patterns
+# - Controlled branding / grey-label constraints
+#
+# Cursor must not introduce ad-hoc UI patterns without justification.
+
+# -------------------------------------------------------------------
+# 9) Admin Portal Rules (IF APPLICABLE)
+# -------------------------------------------------------------------
+# - Admin is a high-risk surface: least privilege and auditability required.
+# - Destructive actions require confirmation and logging.
+# - Admin must not expose raw database manipulation.
+# - Admin capabilities must be clearly scoped and role-restricted.
+
+# -------------------------------------------------------------------
+# 10) OpenAI / External Integrations (IF APPLICABLE)
+# -------------------------------------------------------------------
+# - API keys must never be exposed to clients.
+# - Server-side calls only.
+# - Rate-limit and log responsibly.
+# - Treat AI features as additive; avoid making them foundational.
+
+# -------------------------------------------------------------------
+# 11) Documentation Updates (WHENEVER CHANGES ARE MADE)
+# -------------------------------------------------------------------
+# When implementing a new capability or materially extending one, Cursor must:
+# - Update or add relevant tests (RSD_TESTING_STRATEGY.md)
+# - Update PROJECT_STATUS_TRACKER.md with progress notes (Proffyn updates; Cursor may suggest)
+# - Update DELIVERY_TASK_MAP.md if sequencing changes (if present)
+#
+# Cursor should propose documentation changes, but must not overwrite project
+# governance docs unless explicitly instructed.
+
+# -------------------------------------------------------------------
+# 12) Stop Conditions (MUST STOP AND ASK)
+# -------------------------------------------------------------------
+# Cursor must STOP and ask for clarification if:
+# - Requirements are ambiguous
+# - A change would violate a rule above
+# - A refactor is requested without explicit scope
+# - A schema/RLS change is required but not approved
+# - A new tech stack component is implied
+#
+# When stopping, Cursor should propose 1–3 concrete options.
+#ß
+# -------------------------------------------------------------------
+# 13) New Project Detection & Bootstrap
+# -------------------------------------------------------------------
+# When Cursor opens a repository, it must determine whether this is:
+# - a new RSD project requiring bootstrap
+# - an existing in-flight project
+#
+# Cursor must check for the presence of:
+# - docs/ directory
+# - RSD_PROJECT_BOOTSTRAP.md
+# - PROJECT_STATUS_TRACKER.md
+#
+# If these exist but the project structure is incomplete,
+# Cursor must ask whether to run project bootstrap.
+#
+# If these do NOT exist, Cursor must STOP and ask whether this
+# is intended to be an RSD project.
+#
+# Cursor must not assume a project is "new" without confirmation.
+
+
