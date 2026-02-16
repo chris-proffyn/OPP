@@ -10,7 +10,9 @@ Proffyn Rapid Solution Delivery (RSD) project. OPP is the Darts Training Platfor
 - **`packages/ui`** — Shared UI components and design system.
 - **`packages/data`** — Data-access layer and Supabase wrappers.
 - **`packages/utils`** — Shared utilities and helpers.
-- **`supabase/`** — Migrations and seed data.
+- **`supabase/`** — Migrations and seed data. After running migrations, see **Creating the first admin** below to grant a user admin access.
+
+**Architecture (P1–P6):** The web app must not call Supabase directly for data. Only the auth context (Supabase client for sign-in/sign-out and session) and **`packages/data`** use Supabase; the UI uses `@opp/data` and the shared Supabase client from context. P2 adds training content: **schedules**, **sessions**, **routines**, and **level requirements**. Admins manage these under `/admin/schedules`, `/admin/sessions`, `/admin/routines`, and `/admin/level-requirements` (list, create, edit, delete). **P3** adds **cohorts**, **calendar**, and **player_calendar**: admins manage cohorts and members under `/admin/cohorts`, generate calendar from a cohort’s schedule, and view calendar entries at `/admin/cohorts/:id/calendar`. **P4 — Game Engine core** adds the **play/training flow**: players see **Play** in the nav (authenticated, with a player profile). At **`/play`** they get a list of **all** sessions (from **getAllSessionsForPlayer**) with **Status** (Completed, Due, Future) and **Score** (session score % when completed); each row has **Start** or **View** → **`/play/session/:calendarId`**. On the game screen they start or resume a **session run**, work through routines and steps, enter dart results (hit/miss), and the app records **dart_scores**, **player_routine_scores**, and **session_runs.session_score**. **Level check** display shows the player’s level decade and expected target (e.g. 2/9 from level_requirements). **P5 — Training Rating** adds **CR (training_rating) progression** after each session (level change from session score %, clamp 1–99), **BR/ITA** (ITA session type, ITA score calculation, set baseline_rating/training_rating on ITA completion), and **TR** on the **dashboard (Home)** and in the **GE** (game screen and session-end summary). **P6 — Dashboard and Analyzer** upgrades **Home** into a **Dashboard**: profile, current cohort, next session, PR/TR/MR and **TR trend** (↑/→/↓ from last 4 session scores), and a link to **Performance** (**`/analyzer`**). The **Performance Analyzer** (Free tier) shows current TR, **session history** (session name, date, session score %, per-routine scores), and **basic trends** (e.g. session score and “Singles” routine average over the last 30 days). **Tier gating**: Free tier sees only last-30-day trends and session/routine scores; Gold/Platinum get the same plus a placeholder for future features. No MR/PR yet (P7). No new env vars beyond P1 (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`).
 
 ## Development setup
 
@@ -29,16 +31,23 @@ Proffyn Rapid Solution Delivery (RSD) project. OPP is the Darts Training Platfor
 
 2. **Environment**
    - Copy `.env.example` to `.env`.
-   - Add your **Supabase anon key** to `.env`: Supabase Dashboard → Project Settings → API → Project API keys → **anon public**.
-   - The Supabase URL is already in `.env.example` (OPP project).
+   - Set **Supabase** values in `.env`:
+     - `VITE_SUPABASE_URL` — your project URL (see `.env.example`).
+     - `VITE_SUPABASE_ANON_KEY` — anon public key from Supabase Dashboard → Project Settings → API → Project API keys.
+   - The web app reads only these two; other env vars are optional (e.g. Resend for auth emails).
 
-3. **Run the web app**
+3. **Running migrations**
+   - Apply the schema so `public.players`, P2 training tables (schedules, sessions, routines, schedule_entries, session_routines, routine_steps, level_requirements), P3 tables (cohorts, cohort_members, calendar, player_calendar), and RLS exist:
+     - **Option A (Supabase CLI):** `supabase link --project-ref <your-project-ref>` then `supabase db push`. Migrations live in `supabase/migrations/`.
+     - **Option B (Dashboard):** In Supabase Dashboard → SQL Editor, run the contents of each migration file in order (oldest timestamp first).
+
+4. **Run the web app**
    ```bash
    npm run dev
    ```
    Opens at `http://localhost:5173`.
 
-4. **Scripts**
+5. **Scripts**
    | Command | Description |
    |--------|-------------|
    | `npm run dev` | Start web app dev server |
@@ -49,9 +58,25 @@ Proffyn Rapid Solution Delivery (RSD) project. OPP is the Darts Training Platfor
    | `npm run format:check` | Check formatting |
    | `npm run test` | Run Jest tests |
 
-5. **CI (GitHub Actions)**  
+6. **CI (GitHub Actions)**  
    On push/PR to `main` (or `master`): install, lint, format check, test, build web app.  
    For the build step to use real Supabase config in CI, add repository secrets in GitHub: **Settings → Secrets and variables → Actions** → `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`. If not set, the workflow still runs but the built app will have empty Supabase env at build time.
+
+### Creating the first admin (P1 Foundation)
+
+The app has an admin area (`/admin`) restricted to users whose `players.role` is `'admin'`. New users get `role = 'player'` when they complete their profile. To create the first admin:
+
+1. Sign up and sign in once so a row exists in `public.players` (complete the “Complete your profile” step).
+2. In the **Supabase Dashboard** → **SQL Editor**, run (replace with the admin’s email):
+   ```sql
+   UPDATE public.players SET role = 'admin'
+   WHERE user_id = (SELECT id FROM auth.users WHERE email = 'your@email.com');
+   ```
+3. Sign out and sign in again (or refresh); the Admin link will appear and `/admin` will be accessible.
+
+### Password reset (Supabase)
+
+The forgot-password flow sends a link to your app at `/reset-password`. In the **Supabase Dashboard** → **Authentication** → **URL Configuration**, add your app’s redirect URLs (e.g. `http://localhost:5173/reset-password` for local dev and your production origin).
 
 ## Rules and bootstrap
 
