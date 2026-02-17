@@ -78,6 +78,35 @@ export async function listCohortMembers(
   }));
 }
 
+/** Opponent option for Record match: player_id and display_name (same cohort only). */
+export interface OpponentOption {
+  player_id: string;
+  display_name: string | null;
+}
+
+/**
+ * List other players in the current player's cohort (for opponent dropdown in Record match). Does not require admin; RLS allows SELECT on cohort_members for same cohort.
+ */
+export async function getOpponentsInCurrentCohort(
+  client: SupabaseClient,
+  playerId: string
+): Promise<OpponentOption[]> {
+  const cohort = await getCurrentCohortForPlayer(client, playerId);
+  if (!cohort) return [];
+  const { data, error } = await client
+    .from(COHORT_MEMBERS_TABLE)
+    .select('player_id, players(display_name)')
+    .eq('cohort_id', cohort.id);
+  if (error) mapError(error);
+  const rows = (data ?? []) as { player_id: string; players: { display_name: string } | { display_name: string }[] | null }[];
+  return rows
+    .filter((r) => r.player_id !== playerId)
+    .map((r) => ({
+      player_id: r.player_id,
+      display_name: Array.isArray(r.players) ? r.players[0]?.display_name ?? null : r.players?.display_name ?? null,
+    }));
+}
+
 /**
  * Return the single active cohort for the player (member and cohort.end_date >= today), or null.
  */

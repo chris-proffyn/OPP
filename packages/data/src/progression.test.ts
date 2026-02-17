@@ -31,6 +31,8 @@ describe('applyTrainingRatingProgression', () => {
     const client = createMockClient([
       { data: playerWithTR(24), error: null },
       { data: { training_rating: 24 }, error: null },
+      { data: { ...playerWithTR(24), training_rating: 24, player_rating: 24 }, error: null },
+      { data: { player_rating: 24 }, error: null },
     ]) as unknown as SupabaseClient;
     const result = await applyTrainingRatingProgression(client, 'pid-1', 75);
     expect(result).toBe(24);
@@ -40,6 +42,8 @@ describe('applyTrainingRatingProgression', () => {
     const client = createMockClient([
       { data: playerWithTR(24), error: null },
       { data: { training_rating: 25 }, error: null },
+      { data: { ...playerWithTR(24), training_rating: 25, player_rating: 25 }, error: null },
+      { data: { player_rating: 25 }, error: null },
     ]) as unknown as SupabaseClient;
     const result = await applyTrainingRatingProgression(client, 'pid-1', 120);
     expect(result).toBe(25);
@@ -49,6 +53,8 @@ describe('applyTrainingRatingProgression', () => {
     const client = createMockClient([
       { data: playerWithTR(null), error: null },
       { data: { training_rating: 1 }, error: null },
+      { data: { ...playerWithTR(null), training_rating: 1, player_rating: 1 }, error: null },
+      { data: { player_rating: 1 }, error: null },
     ]) as unknown as SupabaseClient;
     const result = await applyTrainingRatingProgression(client, 'pid-1', 150);
     expect(result).toBe(1);
@@ -58,6 +64,8 @@ describe('applyTrainingRatingProgression', () => {
     const client = createMockClient([
       { data: playerWithTR(99), error: null },
       { data: { training_rating: 99 }, error: null },
+      { data: { ...playerWithTR(99), training_rating: 99, player_rating: 99 }, error: null },
+      { data: { player_rating: 99 }, error: null },
     ]) as unknown as SupabaseClient;
     const result = await applyTrainingRatingProgression(client, 'pid-1', 300);
     expect(result).toBe(99);

@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { getAllSessionsForPlayer, isDataError } from '@opp/data';
 import type { SessionWithStatus } from '@opp/data';
 import { useSupabase } from '../context/SupabaseContext';
@@ -73,7 +73,11 @@ export function PlayLandingPage() {
   return (
     <>
       <h1>Play</h1>
-      <p>All your sessions. Choose one to start (Due or Future) or view (Completed).</p>
+      <p>
+        <Link to="/play/record-match">Record match</Link>
+        {' · '}
+        All your sessions. Choose one to start (Due or Future) or view (Completed).
+      </p>
       <table style={tableStyle}>
         <thead>
           <tr>

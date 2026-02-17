@@ -38,6 +38,7 @@ export function AdminLayoutPage() {
         <Link to="/admin/sessions">Sessions</Link>
         <Link to="/admin/routines">Routines</Link>
         <Link to="/admin/level-requirements">Level requirements</Link>
+        <Link to="/admin/competitions">Competitions</Link>
         <span style={{ marginTop: 'auto', paddingTop: '1rem' }}>
           <Link to="/home">App</Link>
         </span>

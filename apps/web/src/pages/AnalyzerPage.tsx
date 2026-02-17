@@ -9,8 +9,9 @@ import { Link } from 'react-router-dom';
 import {
   getSessionHistoryForPlayer,
   getTrendForPlayer,
+  listMatchesForPlayer,
 } from '@opp/data';
-import type { SessionHistoryEntry } from '@opp/data';
+import type { SessionHistoryEntry, MatchWithOpponentDisplay } from '@opp/data';
 import { useSupabase } from '../context/SupabaseContext';
 import { getEffectiveTier } from '../utils/tier';
 
@@ -28,8 +29,11 @@ export function AnalyzerPage() {
   const [history, setHistory] = useState<SessionHistoryEntry[]>([]);
   const [trendSessionScore, setTrendSessionScore] = useState<number | null>(null);
   const [trendSingles, setTrendSingles] = useState<number | null>(null);
+  const [matches, setMatches] = useState<MatchWithOpponentDisplay[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const premiumTier = player ? (getEffectiveTier(player) === 'gold' || getEffectiveTier(player) === 'platinum') : false;
 
   useEffect(() => {
     if (!player?.id) {
@@ -41,15 +45,34 @@ export function AnalyzerPage() {
     setError(null);
     (async () => {
       try {
-        const [historyRes, sessionTrendRes, singlesTrendRes] = await Promise.all([
+        const promises: [
+          Promise<SessionHistoryEntry[]>,
+          Promise<number | null>,
+          Promise<number | null>,
+        ] = [
           getSessionHistoryForPlayer(supabase, player.id, 50),
           getTrendForPlayer(supabase, player.id, { type: 'session_score', windowDays: 30 }),
           getTrendForPlayer(supabase, player.id, { type: 'routine', routineName: 'Singles', windowDays: 30 }),
-        ]);
-        if (cancelled) return;
-        setHistory(historyRes ?? []);
-        setTrendSessionScore(sessionTrendRes ?? null);
-        setTrendSingles(singlesTrendRes ?? null);
+        ];
+        if (premiumTier) {
+          const matchPromise = listMatchesForPlayer(supabase, player.id, { limit: 20 });
+          const [historyRes, sessionTrendRes, singlesTrendRes, matchesRes] = await Promise.all([
+            ...promises,
+            matchPromise,
+          ]);
+          if (cancelled) return;
+          setHistory(historyRes ?? []);
+          setTrendSessionScore(sessionTrendRes ?? null);
+          setTrendSingles(singlesTrendRes ?? null);
+          setMatches(matchesRes ?? []);
+        } else {
+          const [historyRes, sessionTrendRes, singlesTrendRes] = await Promise.all(promises);
+          if (cancelled) return;
+          setHistory(historyRes ?? []);
+          setTrendSessionScore(sessionTrendRes ?? null);
+          setTrendSingles(singlesTrendRes ?? null);
+          setMatches([]);
+        }
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load performance data.');
       } finally {
@@ -59,7 +82,7 @@ export function AnalyzerPage() {
     return () => {
       cancelled = true;
     };
-  }, [supabase, player?.id]);
+  }, [supabase, player?.id, premiumTier]);
 
   const tier = getEffectiveTier(player);
   const isPremiumTier = tier === 'gold' || tier === 'platinum';
@@ -139,11 +162,39 @@ export function AnalyzerPage() {
         </p>
       </section>
 
-      {isPremiumTier && (
-        <section style={sectionStyle}>
-          <p>More in Gold/Platinum (full history, match data) — coming in a later release.</p>
-        </section>
-      )}
+      <section style={sectionStyle} aria-label="Match history">
+        <h2 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>Match history</h2>
+        {isPremiumTier ? (
+          matches.length === 0 ? (
+            <p>No matches recorded yet.</p>
+          ) : (
+            <table style={tableStyle}>
+              <thead>
+                <tr>
+                  <th style={thTdStyle}>Date</th>
+                  <th style={thTdStyle}>Opponent</th>
+                  <th style={thTdStyle}>Format</th>
+                  <th style={thTdStyle}>Result</th>
+                  <th style={thTdStyle}>MR</th>
+                </tr>
+              </thead>
+              <tbody>
+                {matches.map((m) => (
+                  <tr key={m.id}>
+                    <td style={thTdStyle}>{formatDateTime(m.played_at)}</td>
+                    <td style={thTdStyle}>{m.opponent_display_name ?? '—'}</td>
+                    <td style={thTdStyle}>Best of {m.format_best_of}</td>
+                    <td style={thTdStyle}>{m.legs_won}–{m.legs_lost}</td>
+                    <td style={thTdStyle}>{Number(m.match_rating).toFixed(1)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )
+        ) : (
+          <p>Match history is available in Gold or Platinum.</p>
+        )}
+      </section>
 
       <p>
         <Link to="/home">← Back to Dashboard</Link>

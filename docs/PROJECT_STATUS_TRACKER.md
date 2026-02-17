@@ -32,6 +32,7 @@
 - **P4 — Game Engine core delivered:** Migrations for session_runs, dart_scores, player_routine_scores (triggers, RLS, indexes); data layer (createSessionRun, getSessionRunByPlayerAndCalendar, completeSessionRun, insertDartScore/insertDartScores, upsertPlayerRoutineScore, roundScore/routineScore/sessionScore; getAllSessionsForPlayer with status and session_score); GE UI: Play nav, `/play` landing (**all sessions** with **Status** Completed/Due/Future and **Score** column, Start/View), `/play/session/:calendarId` game screen (context, level check, start/resume, routine loop, segment grid dart input, session score during play and in end summary, mark player_calendar completed). Level check display from level_requirements. Spec per `docs/P4_GAME_ENGINE_IMPLEMENTATION_TASKS.md` and `docs/P4_GAME_ENGINE_DOMAIN.md`.
 - **P5 — Training Rating delivered:** BR/ITA: ITA session identification (name-based), ITA score calculation (Singles/Doubles/Checkout), set baseline_rating and training_rating on ITA completion; optional players.ita_score and ita_completed_at. CR progression: levelChangeFromSessionScore, applyTrainingRatingProgression at session end (skip for ITA). TR on dashboard (Home) and in GE (game screen and session-end summary). Spec per `docs/P5_TRAINING_RATING_IMPLEMENTATION_TASKS.md` and `docs/P5_TRAINING_RATING_DOMAIN.md`.
 - **P6 — Dashboard and analyzer (basic) delivered:** Dashboard (Home): profile, cohort, next session, PR/TR/MR and TR trend (↑/→/↓), link to Performance. Performance Analyzer (`/analyzer`): Free tier — current TR, session history (session + routine scores), basic trends (session score and Singles last 30 days). Tier gating: Free sees only last-30-day trends and session/routine scores; Gold/Platinum placeholder. Spec per `docs/P6_DASHBOARD_ANALYZER_IMPLEMENTATION_TASKS.md` and `docs/P6_DASHBOARD_ANALYZER_DOMAIN.md`.
+- **P7 — Match Rating and competitions delivered:** Match capture (Record match at `/play/record-match`; recordMatch inserts two match rows, updates OMR and PR for both players). MR/OMR/PR: match_rating and player_rating populated; Dashboard shows next competition via getNextCompetitionForPlayer. Admin competitions CRUD at `/admin/competitions` (list, new, edit, delete, view matches). Analyzer match history (Gold/Platinum). Spec per `docs/P7_MATCH_RATING_COMPETITION_IMPLEMENTATION_TASKS.md` and `docs/P7_MATCH_RATING_COMPETITION_DOMAIN.md`.
 
 ---
 
@@ -85,7 +86,7 @@ Per `docs/PRODUCT_REQUIREMENTS.md` §9. Order and dependencies: P1→P2/P3 (part
   Player dashboard, basic analyzer.  
   *Deliverables:* Dashboard: profile, cohort, next session, PR/TR/MR and trends. Analyzer: session history and basic trends (Free tier). Tier gating.
 
-- [ ] **P7 — Match Rating and competitions**  
+- [x] **P7 — Match Rating and competitions**  
   MR/OMR, competition sessions.  
   *Deliverables:* Match result capture; MR per match; OMR calculation; competition day and finals-style events; PR combining TR and MR.
 

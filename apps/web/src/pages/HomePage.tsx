@@ -7,10 +7,11 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   getCurrentCohortForPlayer,
+  getNextCompetitionForPlayer,
   getNextSessionForPlayer,
   getRecentSessionScoresForPlayer,
 } from '@opp/data';
-import type { Cohort } from '@opp/data';
+import type { Cohort, Competition } from '@opp/data';
 import type { NextOrAvailableSession } from '@opp/data';
 import type { RecentSessionScore } from '@opp/data';
 import { useSupabase } from '../context/SupabaseContext';
@@ -33,6 +34,7 @@ export function HomePage() {
   const { supabase, player } = useSupabase();
   const [cohort, setCohort] = useState<Cohort | null>(null);
   const [nextSession, setNextSession] = useState<NextOrAvailableSession | null>(null);
+  const [nextCompetition, setNextCompetition] = useState<Competition | null>(null);
   const [recentScores, setRecentScores] = useState<RecentSessionScore[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -47,14 +49,16 @@ export function HomePage() {
     setError(null);
     (async () => {
       try {
-        const [cohortRes, nextRes, scoresRes] = await Promise.all([
+        const [cohortRes, nextRes, nextCompRes, scoresRes] = await Promise.all([
           getCurrentCohortForPlayer(supabase, player.id),
           getNextSessionForPlayer(supabase, player.id),
+          getNextCompetitionForPlayer(supabase, player.id),
           getRecentSessionScoresForPlayer(supabase, player.id, 4),
         ]);
         if (cancelled) return;
         setCohort(cohortRes ?? null);
         setNextSession(nextRes ?? null);
+        setNextCompetition(nextCompRes ?? null);
         setRecentScores(scoresRes ?? []);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load dashboard.');
@@ -134,7 +138,15 @@ export function HomePage() {
 
       <section style={sectionStyle} aria-label="Next competition">
         <h2 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>Next competition</h2>
-        <p>—</p>
+        {nextCompetition?.scheduled_at ? (
+          <p>
+            {formatDateTime(nextCompetition.scheduled_at)} — {nextCompetition.name}
+            <br />
+            <Link to="/play/record-match">Record match</Link>
+          </p>
+        ) : (
+          <p>—</p>
+        )}
       </section>
 
       <section style={sectionStyle} aria-label="Ratings">

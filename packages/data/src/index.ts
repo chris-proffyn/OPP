@@ -65,6 +65,14 @@ export type {
   SessionHistoryRoutineScore,
   ListCompletedSessionRunsOptions,
   GetTrendForPlayerOptions,
+  // P7 Match Rating and Competition
+  Competition,
+  CreateCompetitionPayload,
+  UpdateCompetitionPayload,
+  Match,
+  MatchInsertPayload,
+  MatchWithOpponentDisplay,
+  RecordMatchPayload,
 } from './types';
 export { DataError, isDataError } from './errors';
 export {
@@ -121,12 +129,27 @@ export {
 } from './cohorts';
 export type { GetCohortByIdResult } from './cohorts';
 export {
+  listCompetitions,
+  getCompetitionById,
+  createCompetition,
+  updateCompetition,
+  deleteCompetition,
+} from './competitions';
+export type { ListCompetitionsOptions } from './competitions';
+export {
+  listMatchesForPlayer,
+  getNextCompetitionForPlayer,
+  listMatchesForCompetition,
+} from './matches';
+export type { ListMatchesForPlayerOptions } from './matches';
+export {
   listCohortMembers,
   addCohortMember,
   removeCohortMember,
   getCurrentCohortForPlayer,
+  getOpponentsInCurrentCohort,
 } from './cohort-members';
-export type { CohortMemberWithPlayer } from './cohort-members';
+export type { CohortMemberWithPlayer, OpponentOption } from './cohort-members';
 export {
   listCalendarByCohort,
   generateCalendarForCohort,
@@ -170,3 +193,27 @@ export {
   getRoutineITAType,
 } from './ita-session';
 export type { DartRow, ITARatings, ITARoutineInfo, ITARoutineType } from './ita-session';
+export {
+  OMR_WINDOW_SIZE,
+  OMR_TRIM_THRESHOLD,
+  FORMAT_WEIGHTS,
+  OUT_OF_BAND_WEIGHT,
+  PR_TR_WEIGHT,
+  PR_OMR_WEIGHT,
+  getDecade,
+} from './rating-params';
+export {
+  computeMatchRating,
+  getFormatWeight,
+  isOpponentInBand,
+} from './match-rating';
+export type { ComputeMatchRatingInputs } from './match-rating';
+export {
+  getEligibleMatchesForOMR,
+  computeOMR,
+  updatePlayerOMR,
+} from './omr';
+export type { EligibleMatchForOMR } from './omr';
+export { computePR, updatePlayerPR } from './pr';
+export { recordMatch } from './record-match';
+export type { RecordMatchResult } from './record-match';

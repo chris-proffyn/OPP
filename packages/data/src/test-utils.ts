@@ -65,6 +65,16 @@ export function createMockClient(responses: Response[]): SupabaseClient {
           return thenable().catch(r);
         },
       });
+      const orderChain = () => ({
+        eq: () => ({
+          limit: () => thenable(),
+          then: (resolve: (r: Response) => void, reject?: (e: unknown) => void) => thenable().then(resolve, reject),
+          catch: (r: (e: unknown) => void) => thenable().catch(r),
+        }),
+        limit: () => thenable(),
+        then: (resolve: (r: Response) => void, reject?: (e: unknown) => void) => thenable().then(resolve, reject),
+        catch: (r: (e: unknown) => void) => thenable().catch(r),
+      });
       const notChain = {
         not: () => notChain,
         order: () => orderThenable(),
@@ -80,7 +90,7 @@ export function createMockClient(responses: Response[]): SupabaseClient {
         maybeSingle: () => thenable(),
         eq: () => eqChain,
         not: () => notChain,
-        order: () => thenable(),
+        order: () => orderChain(),
         then(resolve: (r: Response) => void, reject?: (e: unknown) => void) {
           return thenable().then(resolve, reject);
         },
@@ -108,7 +118,7 @@ export function createMockClient(responses: Response[]): SupabaseClient {
         in: () => inChain,
         ilike: () => thenable(),
         eq: () => eqChain,
-        order: () => thenable(),
+        order: () => orderChain(),
       };
       eqChain.in = () => thenable();
       return listOrEq;

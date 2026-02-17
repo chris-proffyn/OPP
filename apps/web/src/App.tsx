@@ -16,6 +16,10 @@ import { AdminRoutineNewPage } from './pages/AdminRoutineNewPage';
 import { AdminRoutinesPage } from './pages/AdminRoutinesPage';
 import { AdminCohortCalendarPage } from './pages/AdminCohortCalendarPage';
 import { AdminCohortEditPage } from './pages/AdminCohortEditPage';
+import { AdminCompetitionDetailPage } from './pages/AdminCompetitionDetailPage';
+import { AdminCompetitionEditPage } from './pages/AdminCompetitionEditPage';
+import { AdminCompetitionNewPage } from './pages/AdminCompetitionNewPage';
+import { AdminCompetitionsPage } from './pages/AdminCompetitionsPage';
 import { AdminCohortNewPage } from './pages/AdminCohortNewPage';
 import { AdminCohortsPage } from './pages/AdminCohortsPage';
 import { AdminScheduleEditPage } from './pages/AdminScheduleEditPage';
@@ -31,6 +35,7 @@ import { LandingPage } from './pages/LandingPage';
 import { OnboardingPage } from './pages/OnboardingPage';
 import { PlayLandingPage } from './pages/PlayLandingPage';
 import { PlaySessionPage } from './pages/PlaySessionPage';
+import { RecordMatchPage } from './pages/RecordMatchPage';
 import { ProfileEditPage } from './pages/ProfileEditPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
@@ -61,6 +66,7 @@ export default function App() {
               <Route path="profile" element={<ProfilePage />} />
               <Route path="profile/edit" element={<ProfileEditPage />} />
               <Route path="play" element={<PlayLandingPage />} />
+              <Route path="play/record-match" element={<RecordMatchPage />} />
               <Route path="play/session/:calendarId" element={<PlaySessionPage />} />
               <Route path="analyzer" element={<AnalyzerPage />} />
             </Route>
@@ -97,6 +103,10 @@ export default function App() {
             <Route path="level-requirements" element={<AdminLevelRequirementsPage />} />
             <Route path="level-requirements/new" element={<AdminLevelRequirementNewPage />} />
             <Route path="level-requirements/:id" element={<AdminLevelRequirementEditPage />} />
+            <Route path="competitions" element={<AdminCompetitionsPage />} />
+            <Route path="competitions/new" element={<AdminCompetitionNewPage />} />
+            <Route path="competitions/:id" element={<AdminCompetitionDetailPage />} />
+            <Route path="competitions/:id/edit" element={<AdminCompetitionEditPage />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

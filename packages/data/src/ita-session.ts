@@ -21,6 +21,7 @@ import {
   computeSinglesRating,
 } from './ita-scoring';
 import { setBaselineAndTrainingRating, setPlayerITACompleted } from './players';
+import { updatePlayerPR } from './pr';
 
 export type ITARoutineType = 'Singles' | 'Doubles' | 'Checkout';
 
@@ -189,6 +190,7 @@ export async function completeITAAndSetBR(
     throw new DataError('Session is not a valid ITA or data missing', 'VALIDATION');
   }
   await setBaselineAndTrainingRating(client, playerId, ratings.itaScore);
+  await updatePlayerPR(client, playerId);
   await setPlayerITACompleted(client, playerId, ratings.itaScore);
   return ratings;
 }

@@ -6,6 +6,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { DataError } from './errors';
 import { getPlayerById } from './players';
+import { updatePlayerPR } from './pr';
 import { levelChangeFromSessionScore } from './scoring';
 
 const PLAYERS_TABLE = 'players';
@@ -62,6 +63,7 @@ export async function applyTrainingRatingProgression(
     .single();
 
   if (error) mapError(error);
+  await updatePlayerPR(client, playerId);
   const updated = (data as { training_rating: number } | null)?.training_rating;
   return updated != null ? Number(updated) : newValue;
 }

@@ -351,3 +351,109 @@ export interface GetTrendForPlayerOptions {
   routineName?: string; // required when type === 'routine'
   windowDays: number;
 }
+
+// ---------------------------------------------------------------------------
+// P7 Match Rating and Competition
+// ---------------------------------------------------------------------------
+
+/** Competition event (competition day or finals night). */
+export interface Competition {
+  id: string;
+  name: string;
+  cohort_id: string | null;
+  competition_type: 'competition_day' | 'finals_night';
+  scheduled_at: string | null;
+  format_legs: number | null;
+  format_target: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Payload to create a competition. */
+export interface CreateCompetitionPayload {
+  name: string;
+  cohort_id?: string | null;
+  competition_type: 'competition_day' | 'finals_night';
+  scheduled_at?: string | null;
+  format_legs?: number | null;
+  format_target?: number | null;
+}
+
+/** Payload to update a competition (partial). */
+export interface UpdateCompetitionPayload {
+  name?: string;
+  cohort_id?: string | null;
+  competition_type?: 'competition_day' | 'finals_night';
+  scheduled_at?: string | null;
+  format_legs?: number | null;
+  format_target?: number | null;
+}
+
+/** One row per player per match; two rows per head-to-head. */
+export interface Match {
+  id: string;
+  player_id: string;
+  opponent_id: string;
+  competition_id: string | null;
+  calendar_id: string | null;
+  played_at: string;
+  format_best_of: number;
+  legs_won: number;
+  legs_lost: number;
+  total_legs: number;
+  three_dart_avg: number | null;
+  player_3da_baseline: number | null;
+  doubles_attempted: number | null;
+  doubles_hit: number | null;
+  doubles_pct: number | null;
+  opponent_rating_at_match: number | null;
+  rating_difference: number | null;
+  match_rating: number;
+  weight: number;
+  eligible: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Payload to insert a match row (one player's perspective). */
+export interface MatchInsertPayload {
+  player_id: string;
+  opponent_id: string;
+  competition_id?: string | null;
+  calendar_id?: string | null;
+  played_at?: string;
+  format_best_of: number;
+  legs_won: number;
+  legs_lost: number;
+  total_legs: number;
+  three_dart_avg?: number | null;
+  player_3da_baseline?: number | null;
+  doubles_attempted?: number | null;
+  doubles_hit?: number | null;
+  doubles_pct?: number | null;
+  opponent_rating_at_match?: number | null;
+  rating_difference?: number | null;
+  match_rating: number;
+  weight: number;
+  eligible?: boolean;
+}
+
+/** Match row with opponent display_name for list UI. */
+export interface MatchWithOpponentDisplay extends Match {
+  opponent_display_name: string | null;
+}
+
+/** Payload to record a match (current player's perspective). Both rows inserted; OMR/PR updated for both players. */
+export interface RecordMatchPayload {
+  playerId: string;
+  opponentId: string;
+  formatBestOf: number;
+  legsWon: number;
+  legsLost: number;
+  threeDartAvg?: number | null;
+  doublesAttempted?: number | null;
+  doublesHit?: number | null;
+  competitionId?: string | null;
+  calendarId?: string | null;
+  playedAt?: string;
+}
