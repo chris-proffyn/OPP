@@ -1,5 +1,6 @@
 import { Link, Navigate } from 'react-router-dom';
 import { useSupabase } from '../context/SupabaseContext';
+import { OppLogo } from '../components/OppLogo';
 
 export function LandingPage() {
   const { user, authLoading, player, playerLoading } = useSupabase();
@@ -12,6 +13,9 @@ export function LandingPage() {
 
   return (
     <main style={{ padding: '2rem', fontFamily: 'system-ui' }}>
+      <p style={{ marginBottom: '1.5rem' }}>
+        <OppLogo size={48} alt="OPP" />
+      </p>
       <h1>Welcome</h1>
       <p>Community-led training. Structured improvement. Earned progress.</p>
       <p>

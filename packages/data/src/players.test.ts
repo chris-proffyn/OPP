@@ -11,6 +11,7 @@ import {
   listPlayers,
   setBaselineAndTrainingRating,
   updatePlayer,
+  updatePlayerTier,
 } from './players';
 
 function mockClient(overrides: {
@@ -63,6 +64,8 @@ function mockClient(overrides: {
 const samplePlayer = {
   id: 'pid-1',
   user_id: 'uid-1',
+  nickname: 'Test',
+  full_name: null as string | null,
   display_name: 'Test',
   email: 'test@example.com',
   gender: null,
@@ -98,7 +101,7 @@ describe('createPlayer', () => {
       insert: { data: samplePlayer, error: null },
     });
     const result = await createPlayer(client, {
-      display_name: 'Test',
+      nickname: 'Test',
       email: 'test@example.com',
     });
     expect(result).toEqual(samplePlayer);
@@ -109,10 +112,10 @@ describe('createPlayer', () => {
       authGetUser: { user: { id: 'uid-1' }, error: null },
       insert: { data: null, error: { code: '23505' } },
     });
-    await expect(createPlayer(client, { display_name: 'A', email: 'a@b.com' })).rejects.toThrow(
+    await expect(createPlayer(client, { nickname: 'A', email: 'a@b.com' })).rejects.toThrow(
       DataError
     );
-    await expect(createPlayer(client, { display_name: 'A', email: 'a@b.com' })).rejects.toMatchObject({
+    await expect(createPlayer(client, { nickname: 'A', email: 'a@b.com' })).rejects.toMatchObject({
       code: 'CONFLICT',
       message: 'Profile already exists',
     });
@@ -123,10 +126,10 @@ describe('createPlayer', () => {
       authGetUser: { user: null, error: null },
       insert: { data: null, error: null },
     });
-    await expect(createPlayer(client, { display_name: 'A', email: 'a@b.com' })).rejects.toThrow(
+    await expect(createPlayer(client, { nickname: 'A', email: 'a@b.com' })).rejects.toThrow(
       DataError
     );
-    await expect(createPlayer(client, { display_name: 'A', email: 'a@b.com' })).rejects.toMatchObject({
+    await expect(createPlayer(client, { nickname: 'A', email: 'a@b.com' })).rejects.toMatchObject({
       code: 'FORBIDDEN',
     });
   });
@@ -134,13 +137,13 @@ describe('createPlayer', () => {
 
 describe('updatePlayer', () => {
   it('returns updated row when payload has fields', async () => {
-    const updated = { ...samplePlayer, display_name: 'Updated' };
+    const updated = { ...samplePlayer, nickname: 'Updated', display_name: 'Updated' };
     const client = mockClient({
       authGetUser: { user: { id: 'uid-1' }, error: null },
       update: { data: updated, error: null },
     });
-    const result = await updatePlayer(client, { display_name: 'Updated' });
-    expect(result.display_name).toBe('Updated');
+    const result = await updatePlayer(client, { nickname: 'Updated' });
+    expect(result.nickname).toBe('Updated');
   });
 
   it('returns current player when payload is empty', async () => {
@@ -154,8 +157,8 @@ describe('updatePlayer', () => {
       authGetUser: { user: { id: 'uid-1' }, error: null },
       update: { data: null, error: null },
     });
-    await expect(updatePlayer(client, { display_name: 'Updated' })).rejects.toThrow(DataError);
-    await expect(updatePlayer(client, { display_name: 'Updated' })).rejects.toMatchObject({
+    await expect(updatePlayer(client, { nickname: 'Updated' })).rejects.toThrow(DataError);
+    await expect(updatePlayer(client, { nickname: 'Updated' })).rejects.toMatchObject({
       code: 'NOT_FOUND',
       message: 'Player not found',
     });
@@ -233,6 +236,41 @@ describe('setBaselineAndTrainingRating', () => {
     await expect(setBaselineAndTrainingRating(client, 'pid-1', 60)).rejects.toMatchObject({
       code: 'VALIDATION',
       message: 'Baseline rating already set',
+    });
+  });
+});
+
+describe('updatePlayerTier', () => {
+  it('returns updated player when current user is admin', async () => {
+    const admin = { ...samplePlayer, role: 'admin' as const };
+    const updated = { ...samplePlayer, tier: 'platinum' as const };
+    const client = mockClient({
+      select: { data: admin, error: null },
+      update: { data: updated, error: null },
+    });
+    const result = await updatePlayerTier(client, 'pid-1', 'platinum');
+    expect(result.tier).toBe('platinum');
+  });
+
+  it('throws FORBIDDEN when current user is not admin', async () => {
+    const client = mockClient({ select: { data: { ...samplePlayer, role: 'player' }, error: null } });
+    await expect(updatePlayerTier(client, 'pid-1', 'gold')).rejects.toThrow(DataError);
+    await expect(updatePlayerTier(client, 'pid-1', 'gold')).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+      message: 'Admin access required',
+    });
+  });
+
+  it('throws NOT_FOUND when player missing', async () => {
+    const admin = { ...samplePlayer, role: 'admin' as const };
+    const client = mockClient({
+      select: { data: admin, error: null },
+      update: { data: null, error: null },
+    });
+    await expect(updatePlayerTier(client, 'nonexistent', 'platinum')).rejects.toThrow(DataError);
+    await expect(updatePlayerTier(client, 'nonexistent', 'platinum')).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+      message: 'Player not found',
     });
   });
 });

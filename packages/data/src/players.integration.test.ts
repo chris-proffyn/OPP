@@ -66,19 +66,19 @@ describeRLS('RLS integration (10.2.1)', () => {
 
   it('user A can create player and read/update own row', async () => {
     const created = await createPlayer(clientA, {
-      display_name: 'User A',
+      nickname: 'User A',
       email: emailA,
     });
     expect(created).toBeDefined();
-    expect(created.display_name).toBe('User A');
+    expect(created.nickname).toBe('User A');
     playerAId = created.id;
 
     const current = await getCurrentPlayer(clientA);
     expect(current).not.toBeNull();
     expect(current!.id).toBe(playerAId);
 
-    const updated = await updatePlayer(clientA, { display_name: 'User A Updated' });
-    expect(updated.display_name).toBe('User A Updated');
+    const updated = await updatePlayer(clientA, { nickname: 'User A Updated' });
+    expect(updated.nickname).toBe('User A Updated');
   }, 15_000);
 
   it('user B has no player until onboarding; then sees only own row', async () => {
@@ -86,13 +86,13 @@ describeRLS('RLS integration (10.2.1)', () => {
     expect(before).toBeNull();
 
     await createPlayer(clientB, {
-      display_name: 'User B',
+      nickname: 'User B',
       email: emailB,
     });
 
     const after = await getCurrentPlayer(clientB);
     expect(after).not.toBeNull();
-    expect(after!.display_name).toBe('User B');
+    expect(after!.nickname).toBe('User B');
   }, 15_000);
 
   it('user B cannot read A\'s row (RLS: getPlayerById returns null)', async () => {

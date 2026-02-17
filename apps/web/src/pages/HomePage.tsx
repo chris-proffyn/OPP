@@ -1,5 +1,6 @@
 /**
  * Player Dashboard. P5 §8.1: TR; P6 §4: profile, cohort, next session, ratings + trend, link to Analyzer.
+ * P8 §2: GO notifications — "Up next" derived from getNextSessionForPlayer (Option A; no player_notifications table).
  * Only reachable when authenticated and player exists (AuthGuard + PlayerGuard).
  */
 
@@ -16,6 +17,8 @@ import type { NextOrAvailableSession } from '@opp/data';
 import type { RecentSessionScore } from '@opp/data';
 import { useSupabase } from '../context/SupabaseContext';
 import { computeTRTrend } from '../utils/trTrend';
+import { LoadingSpinner } from '../components/LoadingSpinner';
+import { ErrorMessage } from '../components/ErrorMessage';
 
 const sectionStyle: React.CSSProperties = { marginBottom: '1.5rem' };
 const labelStyle: React.CSSProperties = { fontWeight: 600, marginRight: '0.5rem' };
@@ -38,6 +41,7 @@ export function HomePage() {
   const [recentScores, setRecentScores] = useState<RecentSessionScore[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryTrigger, setRetryTrigger] = useState(0);
 
   useEffect(() => {
     if (!player?.id) {
@@ -61,7 +65,7 @@ export function HomePage() {
         setNextCompetition(nextCompRes ?? null);
         setRecentScores(scoresRes ?? []);
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load dashboard.');
+        if (!cancelled) setError(e instanceof Error ? e.message : 'Dashboard could not be loaded. Try again.');
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -69,7 +73,7 @@ export function HomePage() {
     return () => {
       cancelled = true;
     };
-  }, [supabase, player?.id]);
+  }, [supabase, player?.id, retryTrigger]);
 
   const tr = player?.training_rating;
   const trDisplay = tr != null ? String(tr) : '—';
@@ -81,16 +85,21 @@ export function HomePage() {
     trend === 'up' ? 'Trend: improving' : trend === 'down' ? 'Trend: declining' : trend === 'stable' ? 'Trend: stable' : '';
 
   if (loading) {
-    return <p>Loading dashboard…</p>;
+    return <LoadingSpinner message="Loading dashboard…" />;
   }
 
   if (error) {
     return (
       <>
-        <p role="alert">{error}</p>
-        <p>
-          <Link to="/home">Retry</Link>
-        </p>
+        <h1>Dashboard</h1>
+        <ErrorMessage
+          message={error}
+          onRetry={() => {
+            setError(null);
+            setLoading(true);
+            setRetryTrigger((t) => t + 1);
+          }}
+        />
       </>
     );
   }
@@ -104,10 +113,10 @@ export function HomePage() {
         {player?.avatar_url ? (
           <p>
             <img src={player.avatar_url} alt="" width={48} height={48} style={{ borderRadius: 4, marginRight: '0.5rem', verticalAlign: 'middle' }} />
-            <span>{player?.display_name ?? '—'}</span>
+            <span>{player?.nickname ?? '—'}</span>
           </p>
         ) : (
-          <p>{player?.display_name ?? '—'}</p>
+          <p>{player?.nickname ?? '—'}</p>
         )}
       </section>
 
@@ -123,13 +132,19 @@ export function HomePage() {
         )}
       </section>
 
-      <section style={sectionStyle} aria-label="Next session">
-        <h2 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>Next training session</h2>
+      <section style={sectionStyle} aria-label="Up next">
+        <h2 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>Up next</h2>
         {nextSession ? (
           <p>
-            {formatDateTime(nextSession.scheduled_at)} — {nextSession.session_name}
+            Up next: Day {nextSession.day_no} — {nextSession.session_name} on {formatDateTime(nextSession.scheduled_at)}
+            {cohort && (
+              <>
+                <br />
+                <span style={{ fontSize: '0.9rem', color: 'var(--muted, #666)' }}>{cohort.name}</span>
+              </>
+            )}
             <br />
-            <Link to={`/play/session/${nextSession.calendar_id}`}>Start session</Link>
+            <Link to={`/play/session/${nextSession.calendar_id}`} className="tap-target" style={{ display: 'inline-flex' }}>Start session</Link>
           </p>
         ) : (
           <p>No upcoming session</p>
@@ -142,7 +157,7 @@ export function HomePage() {
           <p>
             {formatDateTime(nextCompetition.scheduled_at)} — {nextCompetition.name}
             <br />
-            <Link to="/play/record-match">Record match</Link>
+            <Link to="/play/record-match" className="tap-target" style={{ display: 'inline-flex' }}>Record match</Link>
           </p>
         ) : (
           <p>—</p>
@@ -168,7 +183,7 @@ export function HomePage() {
       </section>
 
       <section style={sectionStyle}>
-        <Link to="/analyzer">View performance</Link>
+        <Link to="/analyzer" className="tap-target" style={{ display: 'inline-flex' }}>View performance</Link>
       </section>
     </>
   );

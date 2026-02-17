@@ -48,7 +48,7 @@ export interface CohortMemberWithPlayer {
 }
 
 /**
- * List cohort members for a cohort, with display_name from players. Admin only.
+ * List cohort members for a cohort, with display_name from players.nickname. Admin only.
  */
 export async function listCohortMembers(
   client: SupabaseClient,
@@ -63,16 +63,16 @@ export async function listCohortMembers(
       player_id,
       created_at,
       updated_at,
-      players(display_name)
+      players(nickname)
     `)
     .eq('cohort_id', cohortId);
   if (error) mapError(error);
-  const rows = (data ?? []) as (CohortMember & { players: { display_name: string } | { display_name: string }[] | null })[];
+  const rows = (data ?? []) as (CohortMember & { players: { nickname: string } | { nickname: string }[] | null })[];
   return rows.map((r) => ({
     id: r.id,
     cohort_id: r.cohort_id,
     player_id: r.player_id,
-    display_name: Array.isArray(r.players) ? r.players[0]?.display_name ?? null : r.players?.display_name ?? null,
+    display_name: Array.isArray(r.players) ? r.players[0]?.nickname ?? null : r.players?.nickname ?? null,
     created_at: r.created_at,
     updated_at: r.updated_at,
   }));
@@ -95,15 +95,15 @@ export async function getOpponentsInCurrentCohort(
   if (!cohort) return [];
   const { data, error } = await client
     .from(COHORT_MEMBERS_TABLE)
-    .select('player_id, players(display_name)')
+    .select('player_id, players(nickname)')
     .eq('cohort_id', cohort.id);
   if (error) mapError(error);
-  const rows = (data ?? []) as { player_id: string; players: { display_name: string } | { display_name: string }[] | null }[];
+  const rows = (data ?? []) as { player_id: string; players: { nickname: string } | { nickname: string }[] | null }[];
   return rows
     .filter((r) => r.player_id !== playerId)
     .map((r) => ({
       player_id: r.player_id,
-      display_name: Array.isArray(r.players) ? r.players[0]?.display_name ?? null : r.players?.display_name ?? null,
+      display_name: Array.isArray(r.players) ? r.players[0]?.nickname ?? null : r.players?.nickname ?? null,
     }));
 }
 

@@ -50,6 +50,7 @@ export type {
   CreateCohortPayload,
   UpdateCohortPayload,
   GenerateCalendarOptions,
+  UpdateCalendarEntryPayload,
   PlayerCalendarFilters,
   NextOrAvailableSession,
   SessionDisplayStatus,
@@ -73,12 +74,18 @@ export type {
   MatchInsertPayload,
   MatchWithOpponentDisplay,
   RecordMatchPayload,
+  CohortPerformanceReport,
+  CohortPerformanceReportRow,
+  CompetitionReport,
+  CompetitionReportMatchRow,
+  CompetitionReportSummaryRow,
 } from './types';
 export { DataError, isDataError } from './errors';
 export {
   getCurrentPlayer,
   createPlayer,
   updatePlayer,
+  updatePlayerTier,
   listPlayers,
   getPlayerById,
   setBaselineAndTrainingRating,
@@ -154,6 +161,7 @@ export {
   listCalendarByCohort,
   generateCalendarForCohort,
   getCalendarEntryById,
+  updateCalendarEntry,
 } from './calendar';
 export type { CalendarWithSessionName, CalendarEntryWithDetails } from './calendar';
 export {
@@ -169,6 +177,7 @@ export {
   getSessionRunByPlayerAndCalendar,
   getSessionRunById,
   completeSessionRun,
+  resetSessionForCalendar,
 } from './session-runs';
 export {
   getRecentSessionScoresForPlayer,
@@ -176,8 +185,17 @@ export {
   getSessionHistoryForPlayer,
   getTrendForPlayer,
 } from './session-history';
-export { insertDartScore, insertDartScores, listDartScoresByTrainingId } from './dart-scores';
-export { upsertPlayerRoutineScore } from './player-routine-scores';
+export {
+  insertDartScore,
+  insertDartScores,
+  listDartScoresByTrainingId,
+  getDartScoresForSessionRun,
+} from './dart-scores';
+export {
+  listRoutineScoresForSessionRun,
+  upsertPlayerRoutineScore,
+} from './player-routine-scores';
+export type { RoutineScoreForRun } from './player-routine-scores';
 export { levelChangeFromSessionScore, roundScore, routineScore, sessionScore } from './scoring';
 export {
   computeCheckoutRating,
@@ -217,3 +235,5 @@ export type { EligibleMatchForOMR } from './omr';
 export { computePR, updatePlayerPR } from './pr';
 export { recordMatch } from './record-match';
 export type { RecordMatchResult } from './record-match';
+export { getCohortPerformanceReport, getCompetitionReport } from './reports';
+export type { GetCohortPerformanceReportOptions } from './reports';

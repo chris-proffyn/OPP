@@ -5,10 +5,12 @@
 
 /**
  * Round score as a percentage. (Actual hits / Target hits) × 100. Scores may exceed 100.
- * If targetHits is 0, returns 0 to avoid division by zero.
+ * If targetHits is 0 (e.g. level 0 requirement), treat as "any hit = 100%": hits > 0 → 100, else 0.
+ * If targetHits is negative, returns 0 (invalid).
  */
 export function roundScore(hits: number, targetHits: number): number {
-  if (targetHits <= 0) return 0;
+  if (targetHits < 0) return 0;
+  if (targetHits === 0) return hits > 0 ? 100 : 0;
   return (hits / targetHits) * 100;
 }
 

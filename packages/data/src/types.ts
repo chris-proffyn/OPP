@@ -6,6 +6,11 @@
 export interface Player {
   id: string;
   user_id: string;
+  /** Display name shown in UI and reports. */
+  nickname: string;
+  /** Optional full name (e.g. legal or preferred). */
+  full_name: string | null;
+  /** Legacy; prefer nickname for display. */
   display_name: string;
   email: string;
   gender: string | null;
@@ -29,16 +34,18 @@ export interface Player {
 }
 
 export interface CreatePlayerPayload {
-  display_name: string;
+  nickname: string;
   email: string;
+  full_name?: string | null;
   gender?: string | null;
   age_range?: string | null;
 }
 
 /** Profile edit only. baseline_rating and training_rating are never set here (P5: ITA and progression only). */
 export interface UpdatePlayerPayload {
-  display_name?: string;
+  nickname?: string;
   email?: string;
+  full_name?: string | null;
   gender?: string | null;
   age_range?: string | null;
 }
@@ -227,6 +234,12 @@ export interface GenerateCalendarOptions {
   defaultTimeOfDay?: string;
 }
 
+/** Payload for updating a calendar entry (admin). At least one field. */
+export interface UpdateCalendarEntryPayload {
+  scheduled_at?: string;
+  session_id?: string;
+}
+
 export interface PlayerCalendarFilters {
   status?: PlayerCalendarStatus;
   fromDate?: string;
@@ -349,7 +362,8 @@ export interface ListCompletedSessionRunsOptions {
 export interface GetTrendForPlayerOptions {
   type: 'session_score' | 'routine';
   routineName?: string; // required when type === 'routine'
-  windowDays: number;
+  /** Number of days; null/undefined = all time (no date filter). P8: 90 and all-time for Gold/Platinum. */
+  windowDays?: number | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -456,4 +470,56 @@ export interface RecordMatchPayload {
   competitionId?: string | null;
   calendarId?: string | null;
   playedAt?: string;
+}
+
+// ---------------------------------------------------------------------------
+// P8 Admin reports (cohort performance, competition report)
+// ---------------------------------------------------------------------------
+
+/** One row in the cohort performance report (per player in cohort). */
+export interface CohortPerformanceReportRow {
+  player_id: string;
+  display_name: string | null;
+  sessions_planned: number;
+  sessions_completed: number;
+  completion_pct: number;
+  average_session_score: number | null;
+  training_rating: number | null;
+}
+
+/** Cohort performance report: list of players with session completion and score aggregates. */
+export interface CohortPerformanceReport {
+  cohortId: string;
+  rows: CohortPerformanceReportRow[];
+}
+
+/** One match row in the competition report (with display names for UI). */
+export interface CompetitionReportMatchRow {
+  id: string;
+  player_id: string;
+  opponent_id: string;
+  player_display_name: string | null;
+  opponent_display_name: string | null;
+  played_at: string;
+  legs_won: number;
+  legs_lost: number;
+  result: string;
+  match_rating: number;
+  eligible: boolean;
+}
+
+/** Per-player summary in competition report (match count, wins, losses). */
+export interface CompetitionReportSummaryRow {
+  player_id: string;
+  display_name: string | null;
+  match_count: number;
+  wins: number;
+  losses: number;
+}
+
+/** Competition report: competition details plus matches and optional per-player summary. */
+export interface CompetitionReport {
+  competition: Competition;
+  matches: CompetitionReportMatchRow[];
+  summary: CompetitionReportSummaryRow[];
 }

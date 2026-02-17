@@ -105,6 +105,7 @@ Per domain §7. All under existing admin guard and layout.
 
 - [x] **10.1** **Calendar view** (`/admin/cohorts/:id/calendar` or tab on edit): call `listCalendarByCohort`; display table or list (scheduled_at, day_no, session_no, session name). Optional: link to session. No direct Supabase.
 - [x] **10.2** If product allows editing scheduled_at per entry, add edit flow (update calendar row); otherwise read-only for P3.
+- [x] **10.3** **Calendar edit:** Data layer: add `updateCalendarEntry(client, calendarId, payload)` where payload has optional `scheduled_at` (ISO string) and optional `session_id`. Admin only (RLS). Admin calendar page: add “Edit” per row (or inline); form/modal to change scheduled_at and optionally session (dropdown from listSessions); save via `updateCalendarEntry`; reload list on success.
 
 ---
 

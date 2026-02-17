@@ -2,7 +2,7 @@
 
 **Project:** OPP (Darts Training Platform)  
 **Document Type:** Runtime control & execution tracking  
-**Last Updated:** P1–P8 phase entries added
+**Last Updated:** P8 + post-P8 admin enhancements
 
 ---
 
@@ -33,6 +33,10 @@
 - **P5 — Training Rating delivered:** BR/ITA: ITA session identification (name-based), ITA score calculation (Singles/Doubles/Checkout), set baseline_rating and training_rating on ITA completion; optional players.ita_score and ita_completed_at. CR progression: levelChangeFromSessionScore, applyTrainingRatingProgression at session end (skip for ITA). TR on dashboard (Home) and in GE (game screen and session-end summary). Spec per `docs/P5_TRAINING_RATING_IMPLEMENTATION_TASKS.md` and `docs/P5_TRAINING_RATING_DOMAIN.md`.
 - **P6 — Dashboard and analyzer (basic) delivered:** Dashboard (Home): profile, cohort, next session, PR/TR/MR and TR trend (↑/→/↓), link to Performance. Performance Analyzer (`/analyzer`): Free tier — current TR, session history (session + routine scores), basic trends (session score and Singles last 30 days). Tier gating: Free sees only last-30-day trends and session/routine scores; Gold/Platinum placeholder. Spec per `docs/P6_DASHBOARD_ANALYZER_IMPLEMENTATION_TASKS.md` and `docs/P6_DASHBOARD_ANALYZER_DOMAIN.md`.
 - **P7 — Match Rating and competitions delivered:** Match capture (Record match at `/play/record-match`; recordMatch inserts two match rows, updates OMR and PR for both players). MR/OMR/PR: match_rating and player_rating populated; Dashboard shows next competition via getNextCompetitionForPlayer. Admin competitions CRUD at `/admin/competitions` (list, new, edit, delete, view matches). Analyzer match history (Gold/Platinum). Spec per `docs/P7_MATCH_RATING_COMPETITION_IMPLEMENTATION_TASKS.md` and `docs/P7_MATCH_RATING_COMPETITION_DOMAIN.md`.
+- **P8 — Polish and scale delivered:** Voice score input in GE (hit/miss; Web Speech API; HTTPS required; manual primary). GO notifications: “Up next” on Dashboard (Option A, app-side derivation from getNextSessionForPlayer). Admin cohort performance report (`/admin/cohorts/:id/report`) and competition report (`/admin/competitions/:id/report`). dart_scores indexing (see migration and `docs/P8_FEATURES.md`). Performance Analyzer Gold (View darts, 90-day and all-time trends, match history) and Platinum (+ AI insights placeholder). Performance review and UX/accessibility polish (tap targets, loading/error states, consistency). Spec per `docs/P8_POLISH_SCALE_IMPLEMENTATION_TASKS.md` and `docs/P8_POLISH_SCALE_DOMAIN.md`; feature summary in `docs/P8_FEATURES.md`.
+- **Post-P8 admin enhancements:** Tier column on admin players list (`/admin/players`) — editable by admin (free/gold/platinum). Tier displayed on player profile (read-only). Cohort players view (`/admin/cohorts/:id/players`): player name is the link to player detail; "Sessions" link (no separate View link). Reset session: admin can reset a calendar session from cohort calendar (`/admin/cohorts/:id/calendar`) or from player sessions (`/admin/players/:id/sessions`); removes all session runs (CASCADE dart_scores, player_routine_scores) and sets player_calendar status to planned. Data layer: `updatePlayerTier`, `resetSessionForCalendar`. Migration `20260226120000_set_all_players_highest_tier.sql` to set all players to platinum (dev/demo). See `docs/P8_FEATURES.md` §7.
+- **User profiles — Nickname:** New column `players.nickname` added; used as the display name app-wide. Migration `20260227120000_add_players_nickname.sql` adds column and backfills from `display_name`. Onboarding and profile edit collect/update nickname; admin and all reports/cohort/matches use nickname for display. Domain and implementation docs updated (P1_FOUNDATION_DOMAIN v1.2, P1_FOUNDATION_IMPLEMENTATION_TASKS, PRODUCT_REQUIREMENTS).
+- **User profiles — Full name:** Optional column `players.full_name` added. Migration `20260227130000_add_players_full_name.sql`. Onboarding and profile edit include optional full name field; profile view and admin player detail show full name. P1_FOUNDATION_DOMAIN v1.3, implementation tasks and PRD updated.
 
 ---
 
@@ -90,6 +94,6 @@ Per `docs/PRODUCT_REQUIREMENTS.md` §9. Order and dependencies: P1→P2/P3 (part
   MR/OMR, competition sessions.  
   *Deliverables:* Match result capture; MR per match; OMR calculation; competition day and finals-style events; PR combining TR and MR.
 
-- [ ] **P8 — Polish and scale**  
+- [x] **P8 — Polish and scale**  
   Notifications, admin reporting, performance, voice input.
   *Deliverables:* Voice score input; GO notifications; admin cohort/competition reports; indexing/archiving for dart_scores; any remaining tier features.

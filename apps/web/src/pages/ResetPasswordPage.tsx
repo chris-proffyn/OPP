@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { PasswordInput } from '../components/PasswordInput';
 import { useSupabase } from '../context/SupabaseContext';
 import { getAuthErrorMessage } from '../lib/authErrors';
 
@@ -50,24 +51,24 @@ export function ResetPasswordPage() {
         )}
         <label style={labelStyle}>
           New password (min {MIN_PASSWORD_LENGTH} characters)
-          <input
-            type="password"
+          <PasswordInput
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete="new-password"
             minLength={MIN_PASSWORD_LENGTH}
             required
             style={inputStyle}
+            aria-label="New password"
           />
         </label>
         <label style={labelStyle}>
           Confirm new password
-          <input
-            type="password"
+          <PasswordInput
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             autoComplete="new-password"
             style={inputStyle}
+            aria-label="Confirm new password"
           />
         </label>
         {password && confirmPassword && password !== confirmPassword && (

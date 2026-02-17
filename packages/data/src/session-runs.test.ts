@@ -8,9 +8,10 @@ import {
   completeSessionRun,
   createSessionRun,
   getSessionRunByPlayerAndCalendar,
+  resetSessionForCalendar,
 } from './session-runs';
 import type { SessionRun } from './types';
-import { createMockClient } from './test-utils';
+import { adminPlayer, createMockClient, nonAdminPlayer } from './test-utils';
 
 const sampleRun: SessionRun = {
   id: 'run-1',
@@ -89,6 +90,25 @@ describe('completeSessionRun', () => {
     await expect(completeSessionRun(client, 'bad-id', 50)).rejects.toMatchObject({
       code: 'NOT_FOUND',
       message: 'Session run not found',
+    });
+  });
+});
+
+describe('resetSessionForCalendar', () => {
+  it('succeeds when current user is admin', async () => {
+    const client = createMockClient([
+      { data: adminPlayer, error: null },
+      { data: null, error: null },
+    ]);
+    await expect(resetSessionForCalendar(client, 'cal-1')).resolves.toBeUndefined();
+  });
+
+  it('throws FORBIDDEN when current user is not admin', async () => {
+    const client = createMockClient([{ data: nonAdminPlayer, error: null }]);
+    await expect(resetSessionForCalendar(client, 'cal-1')).rejects.toThrow(DataError);
+    await expect(resetSessionForCalendar(client, 'cal-1')).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+      message: 'Admin access required',
     });
   });
 });

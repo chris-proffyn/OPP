@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { PasswordInput } from '../components/PasswordInput';
 import { useSupabase } from '../context/SupabaseContext';
 import { getAuthErrorMessage } from '../lib/authErrors';
 
@@ -74,24 +75,24 @@ export function SignUpPage() {
         </label>
         <label style={labelStyle}>
           Password (min {MIN_PASSWORD_LENGTH} characters)
-          <input
-            type="password"
+          <PasswordInput
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete="new-password"
             minLength={MIN_PASSWORD_LENGTH}
             required
             style={inputStyle}
+            aria-label="Password"
           />
         </label>
         <label style={labelStyle}>
           Confirm password
-          <input
-            type="password"
+          <PasswordInput
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             autoComplete="new-password"
             style={inputStyle}
+            aria-label="Confirm password"
           />
         </label>
         {password && confirmPassword && password !== confirmPassword && (
@@ -111,5 +112,11 @@ export function SignUpPage() {
 const pageStyle: React.CSSProperties = { padding: '2rem', fontFamily: 'system-ui', maxWidth: '24rem' };
 const formStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '1rem' };
 const labelStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '0.25rem' };
-const inputStyle: React.CSSProperties = { padding: '0.5rem', fontSize: '1rem' };
+const inputStyle: React.CSSProperties = {
+  padding: '0.5rem',
+  fontSize: '1rem',
+  color: 'var(--color-text)',
+  backgroundColor: 'var(--color-bg)',
+  border: '1px solid var(--color-border)',
+};
 const buttonStyle: React.CSSProperties = { padding: '0.6rem 1rem', marginTop: '0.5rem', cursor: 'pointer' };

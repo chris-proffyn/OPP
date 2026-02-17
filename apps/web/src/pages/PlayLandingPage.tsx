@@ -8,6 +8,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { getAllSessionsForPlayer, isDataError } from '@opp/data';
 import type { SessionWithStatus } from '@opp/data';
 import { useSupabase } from '../context/SupabaseContext';
+import { LoadingSpinner } from '../components/LoadingSpinner';
+import { ErrorMessage } from '../components/ErrorMessage';
 
 function formatScheduledAt(iso: string): string {
   try {
@@ -37,6 +39,7 @@ export function PlayLandingPage() {
   const [sessions, setSessions] = useState<SessionWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryTrigger, setRetryTrigger] = useState(0);
 
   useEffect(() => {
     if (!player) return;
@@ -45,18 +48,27 @@ export function PlayLandingPage() {
     getAllSessionsForPlayer(supabase, player.id)
       .then(setSessions)
       .catch((err) => {
-        setError(isDataError(err) ? err.message : 'Failed to load sessions.');
+        setError(isDataError(err) ? err.message : 'Sessions could not be loaded. Try again.');
       })
       .finally(() => setLoading(false));
-  }, [supabase, player]);
+  }, [supabase, player, retryTrigger]);
 
-  if (loading) return <p>Loading…</p>;
+  if (loading) return <><h1>Play</h1><LoadingSpinner message="Loading sessions…" /></>;
   if (error) {
     return (
       <>
         <h1>Play</h1>
-        <p role="alert" style={{ color: '#c00' }}>{error}</p>
-        <p>You may not be in a cohort yet, or there are no calendar entries. Check with your coach or try again later.</p>
+        <ErrorMessage
+          message={error}
+          onRetry={() => {
+            setError(null);
+            setLoading(true);
+            setRetryTrigger((t) => t + 1);
+          }}
+        />
+        <p style={{ color: 'var(--color-muted, #525252)', fontSize: '0.9rem' }}>
+          You may not be in a cohort yet, or there are no calendar entries. Check with your coach or try again.
+        </p>
       </>
     );
   }
@@ -74,7 +86,7 @@ export function PlayLandingPage() {
     <>
       <h1>Play</h1>
       <p>
-        <Link to="/play/record-match">Record match</Link>
+        <Link to="/play/record-match" className="tap-target" style={{ display: 'inline-flex' }}>Record match</Link>
         {' · '}
         All your sessions. Choose one to start (Due or Future) or view (Completed).
       </p>
@@ -105,6 +117,12 @@ export function PlayLandingPage() {
                 <button
                   type="button"
                   onClick={() => navigate(`/play/session/${s.calendar_id}`)}
+                  style={{
+                    minHeight: 'var(--tap-min, 44px)',
+                    minWidth: 'var(--tap-min, 44px)',
+                    padding: '0.5rem 0.75rem',
+                    cursor: 'pointer',
+                  }}
                 >
                   {s.status === 'Completed' ? 'View' : 'Start'}
                 </button>

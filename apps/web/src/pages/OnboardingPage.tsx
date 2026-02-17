@@ -19,7 +19,8 @@ function isValidEmail(s: string): boolean {
 export function OnboardingPage() {
   const { supabase, refetchPlayer } = useSupabase();
   const navigate = useNavigate();
-  const [displayName, setDisplayName] = useState('');
+  const [nickname, setNickname] = useState('');
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [gender, setGender] = useState<string>('');
   const [ageRange, setAgeRange] = useState<string>('');
@@ -27,7 +28,7 @@ export function OnboardingPage() {
   const [loading, setLoading] = useState(false);
 
   const valid =
-    displayName.trim().length > 0 &&
+    nickname.trim().length > 0 &&
     email.trim().length > 0 &&
     isValidEmail(email);
 
@@ -38,8 +39,9 @@ export function OnboardingPage() {
     setLoading(true);
     try {
       await createPlayer(supabase, {
-        display_name: displayName.trim(),
+        nickname: nickname.trim(),
         email: email.trim(),
+        full_name: fullName.trim() || null,
         gender: gender || null,
         age_range: ageRange || null,
       });
@@ -70,14 +72,25 @@ export function OnboardingPage() {
           </p>
         )}
         <label style={labelStyle}>
-          Display name <span style={{ color: '#666' }}>(required)</span>
+          Nickname <span style={{ color: '#666' }}>(required)</span>
           <input
             type="text"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
+            value={nickname}
+            onChange={(e) => setNickname(e.target.value)}
             autoComplete="nickname"
             required
             placeholder="e.g. Barry26"
+            style={inputStyle}
+          />
+        </label>
+        <label style={labelStyle}>
+          Full name <span style={{ color: '#666' }}>(optional)</span>
+          <input
+            type="text"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            autoComplete="name"
+            placeholder="e.g. Barry Smith"
             style={inputStyle}
           />
         </label>

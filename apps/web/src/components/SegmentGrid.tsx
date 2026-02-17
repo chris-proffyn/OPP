@@ -23,10 +23,12 @@ const groupLabelStyle: React.CSSProperties = {
   marginRight: '0.5rem',
   minWidth: '4rem',
 };
+/* P8 §10.1 — tap targets ≥ 44px (NFR-6) */
 const buttonStyle: React.CSSProperties = {
-  padding: '0.4rem 0.6rem',
+  padding: '0.5rem 0.75rem',
   fontSize: '0.9rem',
-  minWidth: '2.5rem',
+  minWidth: 'var(--tap-min, 44px)',
+  minHeight: 'var(--tap-min, 44px)',
 };
 
 type SegmentGridProps = {

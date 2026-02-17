@@ -11,6 +11,8 @@ function playerWithTR(training_rating: number | null) {
   return {
     id: 'pid-1',
     user_id: 'uid-1',
+    nickname: 'Test',
+    full_name: null as string | null,
     display_name: 'Test',
     email: 'test@example.com',
     gender: null,

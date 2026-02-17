@@ -18,9 +18,10 @@ describe('roundScore', () => {
     expect(roundScore(9, 3)).toBe(300);
   });
 
-  it('returns 0 when targetHits is 0', () => {
+  it('when targetHits is 0 (e.g. level 0): 0 hits → 0, any hit → 100', () => {
     expect(roundScore(0, 0)).toBe(0);
-    expect(roundScore(5, 0)).toBe(0);
+    expect(roundScore(1, 0)).toBe(100);
+    expect(roundScore(5, 0)).toBe(100);
   });
 
   it('returns 0 when targetHits is negative', () => {

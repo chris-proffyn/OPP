@@ -10,13 +10,18 @@ import { AdminLevelRequirementEditPage } from './pages/AdminLevelRequirementEdit
 import { AdminLevelRequirementNewPage } from './pages/AdminLevelRequirementNewPage';
 import { AdminLevelRequirementsPage } from './pages/AdminLevelRequirementsPage';
 import { AdminPlayerDetailPage } from './pages/AdminPlayerDetailPage';
+import { AdminPlayerSessionRunDetailPage } from './pages/AdminPlayerSessionRunDetailPage';
+import { AdminPlayerSessionsPage } from './pages/AdminPlayerSessionsPage';
 import { AdminPlayersPage } from './pages/AdminPlayersPage';
 import { AdminRoutineEditPage } from './pages/AdminRoutineEditPage';
 import { AdminRoutineNewPage } from './pages/AdminRoutineNewPage';
 import { AdminRoutinesPage } from './pages/AdminRoutinesPage';
 import { AdminCohortCalendarPage } from './pages/AdminCohortCalendarPage';
 import { AdminCohortEditPage } from './pages/AdminCohortEditPage';
+import { AdminCohortPlayersPage } from './pages/AdminCohortPlayersPage';
+import { AdminCohortReportPage } from './pages/AdminCohortReportPage';
 import { AdminCompetitionDetailPage } from './pages/AdminCompetitionDetailPage';
+import { AdminCompetitionReportPage } from './pages/AdminCompetitionReportPage';
 import { AdminCompetitionEditPage } from './pages/AdminCompetitionEditPage';
 import { AdminCompetitionNewPage } from './pages/AdminCompetitionNewPage';
 import { AdminCompetitionsPage } from './pages/AdminCompetitionsPage';
@@ -87,6 +92,8 @@ export default function App() {
             <Route index element={<AdminDashboardPage />} />
             <Route path="players" element={<AdminPlayersPage />} />
             <Route path="players/:id" element={<AdminPlayerDetailPage />} />
+            <Route path="players/:id/sessions" element={<AdminPlayerSessionsPage />} />
+            <Route path="players/:id/sessions/:runId" element={<AdminPlayerSessionRunDetailPage />} />
             <Route path="schedules" element={<AdminSchedulesPage />} />
             <Route path="schedules/new" element={<AdminScheduleNewPage />} />
             <Route path="schedules/:id" element={<AdminScheduleEditPage />} />
@@ -94,6 +101,8 @@ export default function App() {
             <Route path="cohorts/new" element={<AdminCohortNewPage />} />
             <Route path="cohorts/:id" element={<AdminCohortEditPage />} />
             <Route path="cohorts/:id/calendar" element={<AdminCohortCalendarPage />} />
+            <Route path="cohorts/:id/players" element={<AdminCohortPlayersPage />} />
+            <Route path="cohorts/:id/report" element={<AdminCohortReportPage />} />
             <Route path="sessions" element={<AdminSessionsPage />} />
             <Route path="sessions/new" element={<AdminSessionNewPage />} />
             <Route path="sessions/:id" element={<AdminSessionEditPage />} />
@@ -107,6 +116,7 @@ export default function App() {
             <Route path="competitions/new" element={<AdminCompetitionNewPage />} />
             <Route path="competitions/:id" element={<AdminCompetitionDetailPage />} />
             <Route path="competitions/:id/edit" element={<AdminCompetitionEditPage />} />
+            <Route path="competitions/:id/report" element={<AdminCompetitionReportPage />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

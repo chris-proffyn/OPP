@@ -39,7 +39,8 @@ const buttonStyle: React.CSSProperties = {
 export function ProfileEditPage() {
   const { supabase, player, refetchPlayer } = useSupabase();
   const navigate = useNavigate();
-  const [displayName, setDisplayName] = useState(player?.display_name ?? '');
+  const [nickname, setNickname] = useState(player?.nickname ?? '');
+  const [fullName, setFullName] = useState(player?.full_name ?? '');
   const [email, setEmail] = useState(player?.email ?? '');
   const [gender, setGender] = useState<string>(player?.gender ?? '');
   const [ageRange, setAgeRange] = useState<string>(player?.age_range ?? '');
@@ -48,7 +49,7 @@ export function ProfileEditPage() {
   const [loading, setLoading] = useState(false);
 
   const valid =
-    displayName.trim().length > 0 &&
+    nickname.trim().length > 0 &&
     email.trim().length > 0 &&
     isValidEmail(email);
 
@@ -59,8 +60,9 @@ export function ProfileEditPage() {
     setLoading(true);
     try {
       await updatePlayer(supabase, {
-        display_name: displayName.trim(),
+        nickname: nickname.trim(),
         email: email.trim(),
+        full_name: fullName.trim() || null,
         gender: gender || null,
         age_range: ageRange || null,
       });
@@ -97,14 +99,25 @@ export function ProfileEditPage() {
           </p>
         )}
         <label style={labelStyle}>
-          Display name <span style={{ color: '#666' }}>(required)</span>
+          Nickname <span style={{ color: '#666' }}>(required)</span>
           <input
             type="text"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
+            value={nickname}
+            onChange={(e) => setNickname(e.target.value)}
             autoComplete="nickname"
             required
             placeholder="e.g. Barry26"
+            style={inputStyle}
+          />
+        </label>
+        <label style={labelStyle}>
+          Full name <span style={{ color: '#666' }}>(optional)</span>
+          <input
+            type="text"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            autoComplete="name"
+            placeholder="e.g. Barry Smith"
             style={inputStyle}
           />
         </label>

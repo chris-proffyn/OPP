@@ -70,11 +70,15 @@ export function AdminPlayerDetailPage() {
     <div>
       <p>
         <Link to="/admin/players">← Back to players</Link>
+        {' · '}
+        <Link to={`/admin/players/${player.id}/sessions`}>Sessions → routines → scores</Link>
       </p>
-      <h1>Player: {player.display_name}</h1>
+      <h1>Player: {player.nickname}</h1>
       <dl style={dlStyle}>
-        <dt>Display name</dt>
-        <dd>{player.display_name}</dd>
+        <dt>Nickname</dt>
+        <dd>{player.nickname}</dd>
+        <dt>Full name</dt>
+        <dd>{player.full_name ?? '—'}</dd>
         <dt>Email</dt>
         <dd>{player.email}</dd>
         <dt>Gender</dt>

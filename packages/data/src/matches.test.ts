@@ -90,7 +90,7 @@ describe('listMatchesForPlayer', () => {
       eligible: true,
       created_at: '2026-02-01T12:00:00Z',
       updated_at: '2026-02-01T12:00:00Z',
-      opponent: { display_name: 'Opponent Name' },
+      opponent: { nickname: 'Opponent Name' },
     };
     const client = createMockClient([
       { data: [matchRow], error: null },

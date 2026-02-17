@@ -34,11 +34,27 @@ From these views, we should be able to drill down:
 
 ## Dark mode
 
-add a dark mode and make it choosable from user profile
+add a dark mode and make it choosable from user profile - DONE
 
 
 ## Password Show toggle
 
-give users the option to see the password as they enter it
+give users the option to see the password as they enter it - DONE
+
+
+## Calendar
+
+Need edit capability - DONE
+
+
+## Navigation.
+
+Upon successful login, players are routed to onboarding. This should only happen if profile record does not exist, else go to homepage - DONE
+
+
+## User Profiles
+
+Create a new column "Nickname" to house the player's Nickname. This will be used as the display name - DONE
+
 
 

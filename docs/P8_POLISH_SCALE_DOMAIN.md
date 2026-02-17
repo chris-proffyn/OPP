@@ -38,6 +38,7 @@ This document describes **every behaviour required for Phase 8 — Polish and sc
 - **Platinum tier analyzer:** Same as Gold; add PR, TR, MR in display if not already; AI analysis deferred (placeholder or “Coming soon”) unless product commits to an AI workstream.
 - **Performance:** Review and tune slow queries (dashboard, play list, analyzer); ensure indexes support them; target NFR-9 (dashboard and session list &lt; 3s; dart submission immediate).
 - **UX polish:** Accessibility (tap targets, contrast, labels); consistent error handling and loading states; any remaining GE/Dashboard/Admin refinements.
+- **Dark mode:** App supports light and dark theme. User can choose from **profile** (e.g. on profile or profile edit page): **Light**, **Dark**, or **System** (follow OS preference). Preference persisted (e.g. localStorage); applied app-wide via CSS variables or data-theme on root. No backend field required for MVP.
 
 ### 1.4 Out of scope for P8
 

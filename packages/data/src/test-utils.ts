@@ -72,6 +72,18 @@ export function createMockClient(responses: Response[]): SupabaseClient {
           catch: (r: (e: unknown) => void) => thenable().catch(r),
         }),
         limit: () => thenable(),
+        order: () => ({
+          order: () => ({
+            order: () => ({
+              then: (resolve: (r: Response) => void, reject?: (e: unknown) => void) => thenable().then(resolve, reject),
+              catch: (r: (e: unknown) => void) => thenable().catch(r),
+            }),
+            then: (resolve: (r: Response) => void, reject?: (e: unknown) => void) => thenable().then(resolve, reject),
+            catch: (r: (e: unknown) => void) => thenable().catch(r),
+          }),
+          then: (resolve: (r: Response) => void, reject?: (e: unknown) => void) => thenable().then(resolve, reject),
+          catch: (r: (e: unknown) => void) => thenable().catch(r),
+        }),
         then: (resolve: (r: Response) => void, reject?: (e: unknown) => void) => thenable().then(resolve, reject),
         catch: (r: (e: unknown) => void) => thenable().catch(r),
       });
@@ -98,9 +110,20 @@ export function createMockClient(responses: Response[]): SupabaseClient {
           return thenable().catch(r);
         },
       };
+      const inChainNot = {
+        not: () => ({
+          then(resolve: (r: Response) => void, reject?: (e: unknown) => void) {
+            return thenable().then(resolve, reject);
+          },
+          catch(r: (e: unknown) => void) {
+            return thenable().catch(r);
+          },
+        }),
+      };
       const inChain = {
         gte: () => ({ order: () => orderThenable() }),
         order: () => thenable(),
+        not: () => inChainNot,
         then(resolve: (r: Response) => void, reject?: (e: unknown) => void) {
           return thenable().then(resolve, reject);
         },
@@ -163,6 +186,8 @@ export function createMockClient(responses: Response[]): SupabaseClient {
 export const adminPlayer = {
   id: 'pid-admin',
   user_id: 'uid-1',
+  nickname: 'Admin',
+  full_name: null as string | null,
   display_name: 'Admin',
   email: 'admin@example.com',
   gender: null,

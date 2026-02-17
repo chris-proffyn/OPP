@@ -158,24 +158,31 @@ export async function getSessionHistoryForPlayer(
 
 /**
  * Aggregate trend: session_score = average session score in window; routine = average routine score for matching routine name in window.
+ * P8: windowDays null/undefined = all time (no date filter).
  */
 export async function getTrendForPlayer(
   client: SupabaseClient,
   playerId: string,
-  options: { type: 'session_score' | 'routine'; routineName?: string; windowDays: number }
+  options: { type: 'session_score' | 'routine'; routineName?: string; windowDays?: number | null }
 ): Promise<number | null> {
-  const since = new Date();
-  since.setDate(since.getDate() - options.windowDays);
-  const sinceIso = since.toISOString();
+  const windowDays = options.windowDays;
+  const allTime = windowDays == null || windowDays === undefined;
+  let sinceIso: string | undefined;
+  if (!allTime) {
+    const since = new Date();
+    since.setDate(since.getDate() - windowDays);
+    sinceIso = since.toISOString();
+  }
 
   if (options.type === 'session_score') {
-    const { data, error } = await client
+    let query = client
       .from(SESSION_RUNS_TABLE)
       .select('session_score')
       .eq('player_id', playerId)
       .not('completed_at', 'is', null)
-      .not('session_score', 'is', null)
-      .gte('completed_at', sinceIso);
+      .not('session_score', 'is', null);
+    if (sinceIso) query = query.gte('completed_at', sinceIso);
+    const { data, error } = await query;
 
     if (error) mapError(error);
     const rows = (data ?? []) as { session_score: number }[];
@@ -188,12 +195,13 @@ export async function getTrendForPlayer(
     const namePart = (options.routineName ?? '').trim();
     if (!namePart) return null;
 
-    const { data: runs, error: runsError } = await client
+    let runsQuery = client
       .from(SESSION_RUNS_TABLE)
       .select('id')
       .eq('player_id', playerId)
-      .not('completed_at', 'is', null)
-      .gte('completed_at', sinceIso);
+      .not('completed_at', 'is', null);
+    if (sinceIso) runsQuery = runsQuery.gte('completed_at', sinceIso);
+    const { data: runs, error: runsError } = await runsQuery;
 
     if (runsError) mapError(runsError);
     const runIds = (runs ?? []).map((r: { id: string }) => r.id) as string[];

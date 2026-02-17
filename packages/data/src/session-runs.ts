@@ -6,8 +6,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { DataError } from './errors';
 import type { SessionRun } from './types';
+import { getCurrentPlayer } from './players';
 
 const SESSION_RUNS_TABLE = 'session_runs';
+const PLAYER_CALENDAR_TABLE = 'player_calendar';
 
 const PGRST_NO_ROWS = 'PGRST116';
 const PG_UNIQUE_VIOLATION = '23505';
@@ -120,4 +122,33 @@ export async function completeSessionRun(
   if (error) mapError(error);
   if (!data) throw new DataError('Session run not found', 'NOT_FOUND');
   return data as SessionRun;
+}
+
+/**
+ * Admin only: reset a calendar session — delete all session runs for this calendar_id
+ * (CASCADE removes dart_scores and player_routine_scores) and set player_calendar status
+ * back to 'planned' so the slot appears as not completed. As if the session never took place.
+ */
+export async function resetSessionForCalendar(
+  client: SupabaseClient,
+  calendarId: string
+): Promise<void> {
+  const current = await getCurrentPlayer(client);
+  if (!current || current.role !== 'admin') {
+    throw new DataError('Admin access required', 'FORBIDDEN');
+  }
+
+  const { error: delError } = await client
+    .from(SESSION_RUNS_TABLE)
+    .delete()
+    .eq('calendar_id', calendarId);
+  if (delError) mapError(delError);
+
+  // Reset player_calendar status to 'planned' for all players assigned to this session.
+  const { error: updError } = await client
+    .from(PLAYER_CALENDAR_TABLE)
+    .update({ status: 'planned' })
+    .eq('calendar_id', calendarId)
+    .select('id');
+  if (updError) mapError(updError);
 }

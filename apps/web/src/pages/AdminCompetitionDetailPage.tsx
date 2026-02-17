@@ -54,7 +54,7 @@ export function AdminCompetitionDetailPage() {
     ])
       .then(([comp, matchList, players]) => {
         const map: Record<string, string> = {};
-        players.forEach((p) => { map[p.id] = p.display_name ?? p.id.slice(0, 8); });
+        players.forEach((p) => { map[p.id] = p.nickname ?? p.id.slice(0, 8); });
         setPlayerMap(map);
         if (comp) {
           setCompetition(comp);
@@ -84,6 +84,8 @@ export function AdminCompetitionDetailPage() {
         <Link to="/admin/competitions">← Competitions</Link>
         {' · '}
         <Link to={`/admin/competitions/${id}/edit`}>Edit</Link>
+        {' · '}
+        <Link to={`/admin/competitions/${id}/report`}>Report</Link>
       </p>
       <section style={{ marginBottom: '1.5rem' }}>
         <p><strong>Type:</strong> {competition.competition_type}</p>

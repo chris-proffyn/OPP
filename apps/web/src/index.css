@@ -1,8 +1,88 @@
+/* P8 §10.1 — NFR-6: tap targets ≥ 44px; readable font and contrast. P8 §14 — Dark mode. */
+:root,
+[data-theme="light"] {
+  --tap-min: 44px;
+  --color-error: #b91c1c;
+  --color-error-bg: #fef2f2;
+  --color-text: #1a1a1a;
+  --color-muted: #525252;
+  --color-bg: #ffffff;
+  --color-border: #e5e5e5;
+}
+
+[data-theme="dark"] {
+  --color-error: #f87171;
+  --color-error-bg: #450a0a;
+  --color-text: #fafafa;
+  --color-muted: #a3a3a3;
+  --color-bg: #171717;
+  --color-border: #404040;
+}
+
 * {
   box-sizing: border-box;
 }
 
 body {
   margin: 0;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--color-text);
+  background-color: var(--color-bg);
   -webkit-font-smoothing: antialiased;
+}
+
+input,
+select,
+textarea,
+button {
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+}
+
+/* Override browser autofill so inputs stay theme-aware in dark/light mode */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--color-text);
+  -webkit-box-shadow: 0 0 0 1000px var(--color-bg) inset;
+  box-shadow: 0 0 0 1000px var(--color-bg) inset;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Tables: ensure text and cells follow theme (admin and analyzer) */
+table {
+  border-collapse: collapse;
+}
+th,
+td {
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  border-color: var(--color-border);
+}
+
+/* Logo: dark mode uses filter so logo stays visible (asset is external SVG with C2PA metadata) */
+.opp-logo-img {
+  vertical-align: middle;
+}
+[data-theme="dark"] .opp-logo-img {
+  filter: invert(1) brightness(1.08);
+}
+
+/* Tap target: use on nav links, primary buttons (P8 §10.1) */
+.tap-target {
+  min-height: var(--tap-min);
+  min-width: var(--tap-min);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0.75rem;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }

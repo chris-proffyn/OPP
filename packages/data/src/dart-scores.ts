@@ -103,3 +103,16 @@ export async function listDartScoresByTrainingId(
   if (error) mapError(error);
   return (data ?? []) as DartScore[];
 }
+
+/**
+ * P8 §5.1 — Dart-level data for Analyzer (Gold/Platinum). Return dart_scores for a session run (training_id),
+ * ordered by routine_no, step_no, dart_no. RLS restricts to own data (player_id = auth player).
+ * Tier gating: UI should call this only when tier is Gold or Platinum (getEffectiveTier / isPremiumTier);
+ * data layer does not check tier so API stays consistent; RLS ensures Free-tier users only see own darts if ever called.
+ */
+export async function getDartScoresForSessionRun(
+  client: SupabaseClient,
+  trainingId: string
+): Promise<DartScore[]> {
+  return listDartScoresByTrainingId(client, trainingId);
+}

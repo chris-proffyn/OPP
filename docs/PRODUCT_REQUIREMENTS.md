@@ -88,7 +88,7 @@ Future: **Competition organiser**, **Coach**, **Professional face** (content and
 
 ### 5.1 In scope (for the development plan)
 
-- **Identity and access** — Auth (Supabase Auth), player profile (display name, email, gender, age range, date joined). No social login required for MVP unless specified.
+- **Identity and access** — Auth (Supabase Auth), player profile (nickname as display name, email, gender, age range, date joined). No social login required for MVP unless specified.
 - **Core data model** — Players, cohorts, cohort_members, schedules, sessions, routines, calendar, player_calendar, level_requirements; dart_scores, session/routine scores; match-related tables for MR/OMR (see OPP Platform + Match Rating spec).
 - **Training Rating (TR)** — BR, ITA (Singles, Doubles, Checkout), CR, level requirements, progression logic, session/routine scoring. Full behaviour per **OPP_TRAINING_RATING_ENGINE_SPEC_v2.md**.
 - **Match Rating (MR / OMR)** — Per-match MR, eligibility rules, format weighting, trimmed rolling average. Full behaviour per **OPP_MATCH_RATING_ENGINE_SPEC.md**.
@@ -116,7 +116,7 @@ Future: **Competition organiser**, **Coach**, **Professional face** (content and
 ### 6.1 Identity and players
 
 - **FR-1.1** Users can register and sign in (Supabase Auth). Player record created/linked on first profile completion.
-- **FR-1.2** Player profile: display name, email, gender, age range, date joined. Editable by player (within constraints) or admin.
+- **FR-1.2** Player profile: nickname (used as display name), full name (optional), email, gender, age range, date joined. Editable by player (within constraints) or admin.
 - **FR-1.3** Player has Baseline Rating (BR), Training Rating (TR), Match Rating (MR), Player Rating (PR). Stored and updated per rating engine specs.
 - **FR-1.4** RLS: players can read/update own profile; admins can view all; no PII leakage across players.
 

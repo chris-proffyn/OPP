@@ -49,7 +49,7 @@ export async function listMatchesForPlayer(
 ): Promise<MatchWithOpponentDisplay[]> {
   let query = client
     .from(MATCHES_TABLE)
-    .select(`${MATCH_SELECT}, opponent:players!opponent_id(display_name)`)
+    .select(`${MATCH_SELECT}, opponent:players!opponent_id(nickname)`)
     .eq('player_id', playerId)
     .order('played_at', { ascending: false });
   if (options?.competitionId != null) {
@@ -60,12 +60,12 @@ export async function listMatchesForPlayer(
   }
   const { data, error } = await query;
   if (error) mapError(error);
-  const rows = (data ?? []) as (Match & { opponent: { display_name: string } | null })[];
+  const rows = (data ?? []) as (Match & { opponent: { nickname: string } | null })[];
   return rows.map((r) => {
     const { opponent, ...match } = r;
     const opponent_display_name =
-      opponent && typeof opponent === 'object' && 'display_name' in opponent
-        ? (opponent.display_name as string) ?? null
+      opponent && typeof opponent === 'object' && 'nickname' in opponent
+        ? (opponent.nickname as string) ?? null
         : null;
     return { ...match, opponent_display_name } as MatchWithOpponentDisplay;
   });

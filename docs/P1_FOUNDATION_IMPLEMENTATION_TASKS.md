@@ -10,7 +10,7 @@
 ## 1. Migrations and schema
 
 - [x] **1.1** Create migration file in `supabase/migrations/` (Supabase timestamp naming, e.g. `YYYYMMDDHHMMSS_create_players.sql`).
-- [x] **1.2** In migration: create `players` table with all columns per domain §4.2 (`id`, `user_id`, `display_name`, `email`, `gender`, `age_range`, `baseline_rating`, `training_rating`, `match_rating`, `player_rating`, `date_joined`, `role`, `created_at`, `updated_at`); constraints (PRIMARY KEY, UNIQUE user_id, FK to auth.users ON DELETE CASCADE, CHECKs for gender and role).
+- [x] **1.2** In migration: create `players` table with all columns per domain §4.2 (`id`, `user_id`, `nickname`, `display_name`, `email`, `gender`, `age_range`, `baseline_rating`, `training_rating`, `match_rating`, `player_rating`, `date_joined`, `role`, `created_at`, `updated_at`); constraints (PRIMARY KEY, UNIQUE user_id, FK to auth.users ON DELETE CASCADE, CHECKs for gender and role). (Later migration adds `nickname`; display_name kept for backward compatibility.)
 - [x] **1.3** In migration: add trigger on `players` to set `updated_at = now()` on BEFORE UPDATE.
 - [x] **1.4** In migration: enable RLS on `players`.
 - [x] **1.5** In migration: add RLS policies `players_select_own`, `players_update_own`, `players_insert_own`, `players_select_admin`, `players_update_admin` per domain §5.2 (admin condition: EXISTS subquery on current user’s role).
@@ -23,9 +23,9 @@
 ## 2. Data access layer (`packages/data`)
 
 - [x] **2.1** Add `getCurrentPlayer(client)`: query `players` where `user_id = auth.uid()`; return single row or null; no Supabase types in return type (use plain object/interface).
-- [x] **2.2** Add `createPlayer(client, payload)`: insert into `players` with `user_id` from session, `display_name`, `email`, optional `gender`, `age_range`; return created row; catch UNIQUE violation and throw clear error (e.g. “Profile already exists”).
-- [x] **2.3** Add `updatePlayer(client, payload)`: update `players` where `user_id = auth.uid()` with only allowed fields (`display_name`, `email`, `gender`, `age_range`); return updated row; throw on not found or error.
-- [x] **2.4** Add `listPlayers(client)`: call `getCurrentPlayer`; if not admin, throw or return error; if admin, select all players (id, display_name, email, role, date_joined, rating columns) and return array.
+- [x] **2.2** Add `createPlayer(client, payload)`: insert into `players` with `user_id` from session, `nickname` (and `display_name` = nickname), `email`, optional `full_name`, `gender`, `age_range`; return created row; catch UNIQUE violation and throw clear error (e.g. “Profile already exists”).
+- [x] **2.3** Add `updatePlayer(client, payload)`: update `players` where `user_id = auth.uid()` with only allowed fields (`nickname`, `email`, `full_name`, `gender`, `age_range`); return updated row; throw on not found or error.
+- [x] **2.4** Add `listPlayers(client)`: call `getCurrentPlayer`; if not admin, throw or return error; if admin, select all players (id, nickname, display_name, email, role, date_joined, rating columns) and return array.
 - [x] **2.5** Add `getPlayerById(client, playerId)`: single select by id; RLS enforces own row or admin; return row or null/throw; document that RLS handles “other player” denial.
 - [x] **2.6** Ensure all functions accept Supabase client (from app); no direct `createClient` inside these functions unless agreed. Map Supabase errors to clear error types; no raw stack to callers; no secrets in logs.
 - [x] **2.7** Export a shared TypeScript type/interface for `Player` (matches table columns) from `packages/data` for use by apps.
@@ -50,14 +50,15 @@
 - [x] **4.4** **Forgot-password** (`/forgot-password`): form with email; call `resetPasswordForEmail`; show “Check your email for reset link”. Document or link to Supabase reset URL behaviour (redirect URL config).
 - [x] **4.5** **Reset-password** (path per Supabase, e.g. `/reset-password` or callback): page where user sets new password after following email link; use Supabase API to update password; then redirect to sign-in.
 - [x] **4.6** **Landing/root** (`/`): if unauthenticated show link to sign-in/sign-up; if authenticated redirect to home/onboarding per player guard.
+- [x] **4.7** **Password show toggle:** On sign-in, sign-up, and reset-password pages, add a control (e.g. button or icon) next to each password field to toggle visibility (type=password ↔ type=text) so users can verify what they entered.
 
 ---
 
 ## 5. Onboarding (complete profile)
 
-- [x] **5.1** **Onboarding page** (`/onboarding`): shown only when authenticated and no player row. Form: `display_name` (required), `email` (required), `gender` (optional), `age_range` (optional). Submit calls `createPlayer` with Supabase client.
+- [x] **5.1** **Onboarding page** (`/onboarding`): shown only when authenticated and no player row. Form: `nickname` (required), `email` (required), `full_name` (optional), `gender` (optional), `age_range` (optional). Submit calls `createPlayer` with Supabase client.
 - [x] **5.2** On success: redirect to `/home` (or `/dashboard`). On failure (e.g. unique violation): show “You already have a profile” and redirect to `/home`; on other errors show message and allow retry.
-- [x] **5.3** Client-side validation: non-empty display_name and email; basic email format. Do not allow submit until required fields valid.
+- [x] **5.3** Client-side validation: non-empty nickname and email; basic email format. Do not allow submit until required fields valid.
 
 ---
 
@@ -83,8 +84,8 @@ Per domain §8.1. Verify or implement the following:
 
 ## 7. Profile (view and edit)
 
-- [x] **7.1** **Profile view** (`/profile`): load current player via `getCurrentPlayer`; display display_name, email, gender, age_range, date_joined; show ratings as “—” or “Not set” (P1). Read-only view with “Edit” action.
-- [x] **7.2** **Profile edit**: form (same fields as onboarding: display_name, email, gender, age_range); submit calls `updatePlayer` with only those fields; success message and stay on profile or redirect to profile view; validation as onboarding.
+- [x] **7.1** **Profile view** (`/profile`): load current player via `getCurrentPlayer`; display nickname, full name (if set), email, gender, age_range, date_joined; show ratings as “—” or “Not set” (P1). Read-only view with “Edit” action.
+- [x] **7.2** **Profile edit**: form (same fields as onboarding: nickname, email, full name (optional), gender, age_range); submit calls `updatePlayer` with only those fields; success message and stay on profile or redirect to profile view; validation as onboarding.
 - [x] **7.3** Ensure profile and edit use only `packages/data` (no direct Supabase in UI).
 
 ---
@@ -93,7 +94,7 @@ Per domain §8.1. Verify or implement the following:
 
 - [x] **8.1** **Admin layout** (`/admin`): layout with sidebar/nav: “Dashboard”, “Players”; content area for child routes. Only rendered when admin guard passes; otherwise redirect.
 - [x] **8.2** **Admin dashboard** (`/admin` or `/admin/dashboard`): placeholder text, e.g. “Admin dashboard – more sections in later phases.”
-- [x] **8.3** **Admin players list** (`/admin/players`): call `listPlayers`; render table or list with at least display_name, email, date_joined, role; add “View” link per player to `/admin/players/:id`.
+- [x] **8.3** **Admin players list** (`/admin/players`): call `listPlayers`; render table or list with at least nickname (display name), email, date_joined, role; add “View” link per player to `/admin/players/:id`.
 - [x] **8.4** **Admin view one player** (`/admin/players/:id`): call `getPlayerById(client, id)`; display same fields as profile view (read-only); no edit/delete in P1.
 - [x] **8.5** Hide “Admin” nav/link in main app when `player.role !== 'admin'`; show when admin. Enforcement remains RLS and data layer.
 

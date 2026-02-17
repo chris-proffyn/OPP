@@ -9,6 +9,8 @@ import { createMockClient } from './test-utils';
 const player1 = {
   id: 'p1',
   user_id: 'u1',
+  nickname: 'Player 1',
+  full_name: null as string | null,
   display_name: 'Player 1',
   email: 'p1@test.com',
   gender: null,
@@ -27,6 +29,7 @@ const player2 = {
   ...player1,
   id: 'p2',
   user_id: 'u2',
+  nickname: 'Player 2',
   display_name: 'Player 2',
   email: 'p2@test.com',
   player_rating: 26,

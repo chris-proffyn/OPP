@@ -31,9 +31,12 @@ import type {
   RoutineStep,
 } from '@opp/data';
 import { useSupabase } from '../context/SupabaseContext';
-import { isHitForTarget } from '../constants/segments';
+import { isHitForTarget, SEGMENT_MISS } from '../constants/segments';
 import { SegmentGrid } from '../components/SegmentGrid';
 import { isITASession } from '../utils/ita';
+import { useVoiceRecognition } from '../hooks/useVoiceRecognition';
+import { voiceTextToSegment } from '../utils/voiceToSegment';
+import { LoadingSpinner } from '../components/LoadingSpinner';
 
 type RoutineWithSteps = { routine: { id: string; name: string }; steps: RoutineStep[] };
 
@@ -71,6 +74,13 @@ type GameState =
 
 const sectionStyle: React.CSSProperties = { marginBottom: '1.5rem' };
 const labelStyle: React.CSSProperties = { fontWeight: 600, marginRight: '0.5rem' };
+/** P8 §10.1 — tap targets ≥ 44px */
+const buttonTapStyle: React.CSSProperties = {
+  minHeight: 'var(--tap-min, 44px)',
+  minWidth: 'var(--tap-min, 44px)',
+  padding: '0.5rem 0.75rem',
+  cursor: 'pointer',
+};
 
 function levelToDecade(level: number | null): number {
   if (level == null || Number.isNaN(level)) return 0;
@@ -82,6 +92,8 @@ export function PlaySessionPage() {
   const navigate = useNavigate();
   const { supabase, player, refetchPlayer } = useSupabase();
   const [gameState, setGameState] = useState<GameState>({ phase: 'loading' });
+  const voice = useVoiceRecognition();
+  const [voiceFeedback, setVoiceFeedback] = useState<'hit' | 'miss' | 'segment' | 'no-match' | null>(null);
 
   // Load: validate calendar, load calendar entry, session+routines, each routine+steps, level req, existing run
   useEffect(() => {
@@ -98,7 +110,9 @@ export function PlaySessionPage() {
         ]);
         if (cancelled) return;
         const avail = sessions.find((s) => s.calendar_id === calendarId);
-        if (!avail || !calendarEntry) {
+        const canAccess =
+          calendarEntry && (avail || player.role === 'admin');
+        if (!canAccess) {
           setGameState({
             phase: 'invalid',
             message: 'Session not found or you don’t have access to it.',
@@ -187,8 +201,50 @@ export function PlaySessionPage() {
 
   const clearVisit = useCallback(() => {
     if (gameState.phase !== 'running') return;
+    setVoiceFeedback(null);
     setGameState({ ...gameState, visitSelections: [] });
   }, [gameState]);
+
+  // P8: Apply voice result to current visit (one segment per recognition)
+  useEffect(() => {
+    if (voice.status !== 'result' || gameState.phase !== 'running') return;
+    const transcript = voice.consumeResult();
+    if (!transcript) return;
+    const routine = gameState.routinesWithSteps[gameState.routineIndex];
+    const step = routine?.steps[gameState.stepIndex];
+    if (!step) return;
+    const N = gameState.levelReq?.darts_allowed ?? 3;
+    if (gameState.visitSelections.length >= N) return;
+    const segment = voiceTextToSegment(transcript, step.target);
+    if (segment === step.target) {
+      setVoiceFeedback('hit');
+      addSegmentToVisit(segment);
+    } else if (segment === SEGMENT_MISS) {
+      setVoiceFeedback('miss');
+      addSegmentToVisit(segment);
+    } else if (segment) {
+      setVoiceFeedback('segment');
+      addSegmentToVisit(segment);
+    } else {
+      setVoiceFeedback('no-match');
+    }
+    voice.clearFeedback();
+  }, [voice.status, gameState.phase, gameState.routineIndex, gameState.stepIndex, gameState.visitSelections?.length, gameState.levelReq?.darts_allowed, gameState.routinesWithSteps, voice.consumeResult, voice.clearFeedback, addSegmentToVisit]);
+
+  // P8: Show no-match when recognition fires no match
+  useEffect(() => {
+    if (voice.status === 'no-match') {
+      setVoiceFeedback('no-match');
+      voice.clearFeedback();
+    }
+  }, [voice.status, voice.clearFeedback]);
+
+  // P8: Clear brief "recorded" feedback after 2s
+  useEffect(() => {
+    if (voiceFeedback !== 'hit' && voiceFeedback !== 'miss' && voiceFeedback !== 'segment') return;
+    const t = setTimeout(() => setVoiceFeedback(null), 2000);
+    return () => clearTimeout(t);
+  }, [voiceFeedback]);
 
   const submitVisit = useCallback(async () => {
     if (gameState.phase !== 'running' || !player) return;
@@ -281,13 +337,15 @@ export function PlaySessionPage() {
     });
   }, [gameState, player, supabase, refetchPlayer]);
 
-  if (gameState.phase === 'loading') return <p>Loading…</p>;
+  if (gameState.phase === 'loading') return <LoadingSpinner message="Loading session…" />;
   if (gameState.phase === 'invalid') {
     return (
       <>
-        <p role="alert">{gameState.message}</p>
+        <div role="alert" style={{ padding: '1rem', backgroundColor: 'var(--color-error-bg, #fef2f2)', color: 'var(--color-error, #b91c1c)', borderRadius: 4, marginBottom: '1rem' }}>
+          <p style={{ margin: 0 }}>{gameState.message}</p>
+        </div>
         <p>
-          <Link to="/play">← Back to Play</Link>
+          <Link to="/play" className="tap-target" style={{ display: 'inline-flex' }}>← Back to Play</Link>
         </p>
       </>
     );
@@ -305,7 +363,7 @@ export function PlaySessionPage() {
         <section style={sectionStyle} aria-label="Context">
           <p>
             <span style={labelStyle}>Player:</span>
-            {player?.display_name ?? '—'}
+            {player?.nickname ?? '—'}
           </p>
           <p>
             <span style={labelStyle}>PR:</span>
@@ -340,17 +398,17 @@ export function PlaySessionPage() {
         )}
         <section style={sectionStyle}>
           {canResume ? (
-            <button type="button" onClick={handleStartOrResume}>
+            <button type="button" onClick={handleStartOrResume} style={buttonTapStyle}>
               Resume
             </button>
           ) : (
-            <button type="button" onClick={handleStartOrResume}>
+            <button type="button" onClick={handleStartOrResume} style={buttonTapStyle}>
               Start
             </button>
           )}
         </section>
         <p>
-          <Link to="/play">← Back to Play</Link>
+          <Link to="/play" className="tap-target" style={{ display: 'inline-flex' }}>← Back to Play</Link>
         </p>
       </>
     );
@@ -382,7 +440,7 @@ export function PlaySessionPage() {
         <h1>{sessionName}</h1>
         <section style={sectionStyle} aria-label="Context">
           <p>
-            {player?.display_name} — {calendarEntry.cohort_name ?? '—'} — Day {calendarEntry.day_no}
+            {player?.nickname} — {calendarEntry.cohort_name ?? '—'} — Day {calendarEntry.day_no}
             , Session {calendarEntry.session_no}
           </p>
           <p>
@@ -408,8 +466,44 @@ export function PlaySessionPage() {
         <section style={sectionStyle}>
           <h2>{routine.routine.name}</h2>
           <p>
-            Aim at <strong>{step.target}</strong>. Select segment hit for each dart:
+            Aim at <strong>{step.target}</strong>. Say &lsquo;hit&rsquo; or &lsquo;miss&rsquo;, or tap below:
           </p>
+          {voice.isSupported && (
+            <p style={{ marginBottom: '0.5rem' }}>
+              <button
+                type="button"
+                style={buttonTapStyle}
+                onClick={voice.status === 'listening' ? voice.stopListening : voice.startListening}
+                disabled={visitSelections.length >= N}
+                aria-label={voice.status === 'listening' ? 'Stop voice input' : 'Start voice input'}
+              >
+                {voice.status === 'listening' ? 'Stop voice' : 'Use voice'}
+              </button>
+              {voice.status === 'listening' && <span style={{ marginLeft: '0.5rem' }}>Listening…</span>}
+            </p>
+          )}
+          {!voice.isSupported && (
+            <p style={{ fontSize: '0.9rem', color: 'var(--muted, #666)' }}>
+              Voice not supported in this browser; use manual input below.
+            </p>
+          )}
+          {voiceFeedback === 'hit' && <p role="status" aria-live="polite">Hit recorded.</p>}
+          {voiceFeedback === 'miss' && <p role="status" aria-live="polite">Miss recorded.</p>}
+          {voiceFeedback === 'segment' && <p role="status" aria-live="polite">Segment recorded.</p>}
+          {voiceFeedback === 'no-match' && (
+            <p role="alert">
+              I didn&rsquo;t catch that.{' '}
+              <button type="button" style={buttonTapStyle} onClick={() => { voice.startListening(); setVoiceFeedback(null); }}>Retry</button>
+              {' '}
+              <button type="button" style={buttonTapStyle} onClick={() => { setVoiceFeedback(null); }}>Use manual</button>
+            </p>
+          )}
+          {voice.status === 'error' && voice.errorMessage && (
+            <p role="alert">
+              {voice.errorMessage}{' '}
+              <button type="button" style={buttonTapStyle} onClick={() => { voice.clearFeedback(); setVoiceFeedback(null); }}>OK</button>
+            </p>
+          )}
           <p style={{ marginBottom: '0.5rem' }}>
             {Array.from({ length: N }, (_, i) => (
               <span key={i} style={{ marginRight: '0.75rem' }}>
@@ -424,19 +518,19 @@ export function PlaySessionPage() {
           />
           <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
             {visitSelections.length > 0 && (
-              <button type="button" onClick={clearVisit}>
+              <button type="button" onClick={clearVisit} style={buttonTapStyle}>
                 Clear visit
               </button>
             )}
             {visitComplete && (
-              <button type="button" onClick={submitVisit}>
+              <button type="button" onClick={submitVisit} style={buttonTapStyle}>
                 Submit visit
               </button>
             )}
           </div>
         </section>
         <p>
-          <Link to="/play">← Back to Play</Link>
+          <Link to="/play" className="tap-target" style={{ display: 'inline-flex' }}>← Back to Play</Link>
         </p>
       </>
     );
@@ -463,10 +557,10 @@ export function PlaySessionPage() {
           )}
         </section>
         <p>
-          <button type="button" onClick={() => navigate('/play')}>
+          <button type="button" onClick={() => navigate('/play')} style={buttonTapStyle}>
             Back to Play
           </button>{' '}
-          <button type="button" onClick={() => navigate('/home')}>
+          <button type="button" onClick={() => navigate('/home')} style={buttonTapStyle}>
             Return to dashboard
           </button>
         </p>

@@ -234,7 +234,7 @@ Use `auth.uid()` to resolve current user’s `players.id` (e.g. via a helper lik
 
 - **/admin/cohorts** — List cohorts; “New”, “Edit”, “Delete” (with confirm). Edit → `/admin/cohorts/:id`: name, level, start_date, end_date, schedule (dropdown), members (list + add/remove player), “Generate calendar” (if not yet generated or allow regenerate).
 - **/admin/cohorts/:id/members** — Manage cohort members (add/remove players); ensure “at most one cohort per player” is surfaced (e.g. warn if player already in another active cohort).
-- **/admin/cohorts/:id/calendar** — View/edit calendar entries for the cohort (list by scheduled_at); optional: edit scheduled_at if product allows; link to session. View player_calendar status per member if needed.
+- **/admin/cohorts/:id/calendar** — View and edit calendar entries for the cohort (list by scheduled_at). Admin can edit each entry: at least **scheduled_at** (datetime); optionally **session_id** (reassign to another session). Link to session. View player_calendar status per member if needed.
 
 ### 7.2 Navigation
 

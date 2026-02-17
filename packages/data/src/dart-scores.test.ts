@@ -4,7 +4,7 @@
  */
 
 import { DataError } from './errors';
-import { insertDartScore, insertDartScores } from './dart-scores';
+import { getDartScoresForSessionRun, insertDartScore, insertDartScores } from './dart-scores';
 import type { DartScore, DartScorePayload } from './types';
 import { createMockClient } from './test-utils';
 
@@ -94,5 +94,26 @@ describe('insertDartScores', () => {
     await expect(
       insertDartScores(client, [samplePayload, { ...samplePayload, dart_no: 2, result: 'X' as 'H' }])
     ).rejects.toThrow(DataError);
+  });
+});
+
+describe('getDartScoresForSessionRun', () => {
+  it('returns darts for training_id ordered by routine_no, step_no, dart_no', async () => {
+    const darts: DartScore[] = [
+      { id: 'ds-1', player_id: 'pid-1', training_id: 'run-1', routine_id: 'r1', routine_no: 1, step_no: 1, dart_no: 1, target: 'S20', actual: 'S20', result: 'H', created_at: '2026-02-15T10:00:00Z' },
+      { id: 'ds-2', player_id: 'pid-1', training_id: 'run-1', routine_id: 'r1', routine_no: 1, step_no: 1, dart_no: 2, target: 'S20', actual: 'M', result: 'M', created_at: '2026-02-15T10:00:01Z' },
+    ];
+    const client = createMockClient([{ data: darts, error: null }]);
+    const result = await getDartScoresForSessionRun(client, 'run-1');
+    expect(result).toHaveLength(2);
+    expect(result[0].training_id).toBe('run-1');
+    expect(result[0].result).toBe('H');
+    expect(result[1].result).toBe('M');
+  });
+
+  it('returns empty array when no darts for training_id', async () => {
+    const client = createMockClient([{ data: [], error: null }]);
+    const result = await getDartScoresForSessionRun(client, 'run-none');
+    expect(result).toEqual([]);
   });
 });

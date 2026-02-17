@@ -107,9 +107,11 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
       setAuthError(null);
       setAuthLoading(false);
       if (session?.user) {
+        setPlayerLoading(true);
         void fetchPlayer();
       } else {
         setPlayer(null);
+        setPlayerLoading(false);
       }
     });
     return () => subscription.unsubscribe();

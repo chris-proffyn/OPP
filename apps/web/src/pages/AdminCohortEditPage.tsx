@@ -145,7 +145,11 @@ export function AdminCohortEditPage() {
       <p>
         <Link to="/admin/cohorts">← Back to cohorts</Link>
         {' · '}
+        <Link to={`/admin/cohorts/${id}/players`}>Players</Link>
+        {' · '}
         <Link to={`/admin/cohorts/${id}/calendar`}>Calendar</Link>
+        {' · '}
+        <Link to={`/admin/cohorts/${id}/report`}>Cohort performance</Link>
       </p>
       <h1>Edit cohort</h1>
 
@@ -190,7 +194,7 @@ export function AdminCohortEditPage() {
           <select value={addPlayerId} onChange={(e) => setAddPlayerId(e.target.value)} disabled={submitting} style={{ minWidth: '14rem', padding: '0.35rem', marginRight: '0.5rem' }}>
             <option value="">Add player…</option>
             {playersNotInCohort.map((p) => (
-              <option key={p.id} value={p.id}>{p.display_name} ({p.email})</option>
+              <option key={p.id} value={p.id}>{p.nickname} ({p.email})</option>
             ))}
           </select>
           <button type="button" onClick={handleAddMember} disabled={submitting || !addPlayerId}>Add</button>

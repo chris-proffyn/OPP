@@ -5,6 +5,7 @@
 
 import { Link, Outlet } from 'react-router-dom';
 import { useSupabase } from '../context/SupabaseContext';
+import { OppLogo } from './OppLogo';
 
 const layoutStyle: React.CSSProperties = {
   fontFamily: 'system-ui',
@@ -14,17 +15,22 @@ const layoutStyle: React.CSSProperties = {
 };
 const navStyle: React.CSSProperties = {
   padding: '0.75rem 1.5rem',
-  borderBottom: '1px solid #ccc',
+  borderBottom: '1px solid var(--color-border)',
   display: 'flex',
   alignItems: 'center',
   gap: '1.25rem',
   flexWrap: 'wrap',
-  backgroundColor: '#f0f0f0',
+  backgroundColor: 'var(--color-bg)',
 };
 const linkStyle: React.CSSProperties = {
-  color: '#1a1a1a',
+  color: 'var(--color-text)',
   textDecoration: 'none',
   fontWeight: 500,
+  minHeight: 'var(--tap-min, 44px)',
+  minWidth: 'var(--tap-min, 44px)',
+  display: 'inline-flex',
+  alignItems: 'center',
+  padding: '0.5rem 0',
 };
 const mainStyle: React.CSSProperties = {
   flex: 1,
@@ -37,6 +43,9 @@ export function AuthenticatedLayout() {
   return (
     <div style={layoutStyle}>
       <nav style={navStyle} aria-label="Main">
+        <Link to="/home" style={{ ...linkStyle, display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }} aria-label="OPP Home">
+          <OppLogo size={32} />
+        </Link>
         <Link to="/home" style={linkStyle}>Home</Link>
         <Link to="/profile" style={linkStyle}>Profile</Link>
         <Link to="/play" style={linkStyle}>Play</Link>
@@ -45,7 +54,16 @@ export function AuthenticatedLayout() {
           <Link to="/admin" style={linkStyle}>Admin</Link>
         )}
         <span style={{ marginLeft: 'auto' }}>
-          <button type="button" onClick={() => void signOut()}>
+          <button
+            type="button"
+            onClick={() => void signOut()}
+            style={{
+              minHeight: 'var(--tap-min, 44px)',
+              minWidth: 'var(--tap-min, 44px)',
+              padding: '0.5rem 0.75rem',
+              cursor: 'pointer',
+            }}
+          >
             Sign out
           </button>
         </span>

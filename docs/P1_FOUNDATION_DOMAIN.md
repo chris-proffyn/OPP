@@ -3,7 +3,7 @@
 **Document Type:** Domain specification (Phase 1)  
 **Project:** OPP Darts Training Platform  
 **Audience:** Delivery team, Cursor  
-**Status:** v1.1  
+**Status:** v1.3  
 **Authority:** Defines all required behaviour for Phase 1 (Foundation). Implementation must conform to this document.
 
 ---
@@ -71,6 +71,7 @@ This document describes **every behaviour required for Phase 1 — Foundation** 
 - **Sign-out:** Single action (button/link); sign out then redirect to public/home or sign-in.
 - **Password reset:** Entry point (e.g. “Forgot password?”); collect email; send reset link; show confirmation. Reset link opens Supabase-hosted or app-hosted page where user sets new password (Supabase behaviour).
 - **Guarded routes:** Any route that requires a logged-in user must redirect to sign-in when `auth.getUser()` (or equivalent) indicates no session. Optionally, redirect unverified users to a “verify email” screen until verified.
+- **Password visibility:** Password fields (sign-in, sign-up, reset-password) must offer a control (e.g. button or checkbox) to toggle show/hide password so users can verify what they entered.
 
 ### 3.4 Errors and validation
 
@@ -94,7 +95,9 @@ Table name: **`players`** (plural, snake_case per RSD).
 |--------|------|-------------|-------------|
 | `id` | `uuid` | PRIMARY KEY, DEFAULT gen_random_uuid() | Table primary key. Use for all internal and API references. |
 | `user_id` | `uuid` | NOT NULL, UNIQUE, REFERENCES auth.users(id) ON DELETE CASCADE | Links to Supabase Auth. One-to-one with auth user. |
-| `display_name` | `text` | NOT NULL | Player nickname (e.g. “Barry26”). |
+| `nickname` | `text` | NOT NULL | Player nickname (e.g. “Barry26”). Used as the display name throughout the app. |
+| `full_name` | `text` | NULL | Optional full name (e.g. legal or preferred). |
+| `display_name` | `text` | NOT NULL | Legacy; kept in sync with nickname for backward compatibility. |
 | `email` | `text` | NOT NULL | Contact email. Should match auth.users.email for consistency; updated on profile save if desired (see 5.2). |
 | `gender` | `text` | NULL or CHECK (gender IN ('m','f','d')) | m = male, f = female, d = diverse. Optional in P1. |
 | `age_range` | `text` | NULL or pattern e.g. '20-29','30-39','40-49','50-59','60+' | Decade or range. Optional in P1. |
@@ -113,7 +116,7 @@ Table name: **`players`** (plural, snake_case per RSD).
 ### 4.3 Player creation and linking
 
 - **When:** No automatic creation on sign-up. When the authenticated user first visits the app and **does not have a player row** (no row with `user_id = auth.uid()`), the app must show a **“Complete your profile”** (or onboarding) flow.
-- **Flow:** User provides at least: `display_name`, `email`. Optionally: `gender`, `age_range`. On submit: insert one row into `players` with `user_id = auth.uid()`, `display_name`, `email`, and optional fields; `date_joined` = current date; `role` = 'player'; ratings NULL. Then redirect to app home/dashboard placeholder.
+- **Flow:** User provides at least: `nickname`, `email`. Optionally: `full_name`, `gender`, `age_range`. On submit: insert one row into `players` with `user_id = auth.uid()`, `nickname` (and `display_name` = nickname), `email`, and optional fields; `date_joined` = current date; `role` = 'player'; ratings NULL. Then redirect to app home/dashboard placeholder.
 - **Uniqueness:** One player per `user_id`. Enforced by UNIQUE on `user_id`. Attempting to create a second player for the same `user_id` must be treated as an error (e.g. race condition); app should not offer “create profile” again if a row already exists.
 
 ### 4.4 Other tables in P1
@@ -145,7 +148,7 @@ Table name: **`players`** (plural, snake_case per RSD).
 
 ### 5.3 Allowed updates (player, own row)
 
-- Player may update: `display_name`, `email`, `gender`, `age_range`. They must **not** be able to update: `user_id`, `id`, `role`, `baseline_rating`, `training_rating`, `match_rating`, `player_rating`, `date_joined`, `created_at`. `updated_at` is maintained by trigger.
+- Player may update: `nickname`, `email`, `full_name`, `gender`, `age_range`. They must **not** be able to update: `user_id`, `id`, `role`, `baseline_rating`, `training_rating`, `match_rating`, `player_rating`, `date_joined`, `created_at`. `updated_at` is maintained by trigger. (When nickname is updated, `display_name` is kept in sync for backward compatibility.)
 - Enforce column-level restrictions either in RLS (e.g. no policy that allows updating `role`) or in application/data layer by only sending allowed columns. Prefer restricting in data layer so API is explicit.
 
 ### 5.4 Admin assignment
@@ -169,18 +172,18 @@ Table name: **`players`** (plural, snake_case per RSD).
   - Used for: “Do I have a profile?”, “Show my profile”, “Am I admin?”.
 
 - **createPlayer(client, payload)**  
-  - Input: Supabase client (authenticated), `{ display_name, email, gender?, age_range? }`.  
-  - Behaviour: Insert into `players` with `user_id = auth.uid()`, required and optional fields; return created row or throw.  
+  - Input: Supabase client (authenticated), `{ nickname, email, full_name?, gender?, age_range? }`.  
+  - Behaviour: Insert into `players` with `user_id = auth.uid()`, `nickname` (and `display_name` = nickname), required and optional fields; return created row or throw.  
   - Used for: Onboarding “Complete your profile”.
 
 - **updatePlayer(client, payload)**  
-  - Input: Supabase client (authenticated), `{ display_name?, email?, gender?, age_range? }` (only allowed fields).  
-  - Behaviour: Update `players` where `user_id = auth.uid()`; set only provided columns; return updated row or throw.  
+  - Input: Supabase client (authenticated), `{ nickname?, email?, full_name?, gender?, age_range? }` (only allowed fields).  
+  - Behaviour: Update `players` where `user_id = auth.uid()`; set only provided columns (nickname update also sets display_name); return updated row or throw.  
   - Used for: Profile edit (player, own).
 
 - **listPlayers(client)**  
   - Input: Supabase client (authenticated).  
-  - Behaviour: Allowed only if current user is admin (check via getCurrentPlayer and role). If not admin, throw or return error. If admin, select all players (e.g. id, display_name, email, role, date_joined, ratings); return list.  
+  - Behaviour: Allowed only if current user is admin (check via getCurrentPlayer and role). If not admin, throw or return error. If admin, select all players (e.g. id, nickname, display_name, email, role, date_joined, ratings); return list.  
   - Used for: Admin placeholder “View players”.
 
 - **getPlayerById(client, playerId)**  
@@ -205,7 +208,7 @@ Table name: **`players`** (plural, snake_case per RSD).
 
 - **Route guard:** Access to `/admin` (and any child route) requires: (1) user is authenticated; (2) current player exists and `role === 'admin'`. If not, redirect to sign-in or to a “Not authorised” page.
 - **Admin layout:** Simple layout for admin: e.g. sidebar or nav with “Players” (placeholder) and “Home” or “Dashboard”; content area for child routes.
-- **Placeholder “Players” page:** List all players (call `listPlayers`). Display at least: display_name, email, date_joined, role. No edit/delete in P1 unless explicitly required (PRD says “View” for admin player profiles). So: list + optional “View” link that shows one player’s profile (read-only) using `getPlayerById`.
+- **Placeholder “Players” page:** List all players (call `listPlayers`). Display at least: nickname (display name), email, date_joined, role. No edit/delete in P1 unless explicitly required (PRD says “View” for admin player profiles). So: list + optional “View” link that shows one player’s profile (read-only) using `getPlayerById`.
 - **Admin “Dashboard” or “Home”:** Placeholder text, e.g. “Admin dashboard – more sections in later phases.”
 - **No other admin CRUD** in P1 (no calendars, schedules, cohorts, etc.).
 
@@ -243,12 +246,12 @@ The app must provide a **persistent navigation element** so users can move betwe
 
 ### 8.3 Profile (player)
 
-- **View:** Show display_name, email, gender, age_range, date_joined. Ratings can be shown as “—” or “Not set” in P1.
-- **Edit:** Form to update display_name, email, gender, age_range. Submit calls `updatePlayer`. Success message; stay on profile or redirect. Validation: display_name and email non-empty; email format basic check.
+- **View:** Show nickname, full name (if set), email, gender, age_range, date_joined. Ratings can be shown as “—” or “Not set” in P1.
+- **Edit:** Form to update nickname, email, full name (optional), gender, age_range. Submit calls `updatePlayer`. Success message; stay on profile or redirect. Validation: nickname and email non-empty; email format basic check.
 
 ### 8.4 Onboarding
 
-- Single step: collect display_name, email, gender (optional), age_range (optional). Submit → `createPlayer`; on success redirect to `/home` or `/dashboard`. On failure (e.g. duplicate), show error; do not create duplicate row.
+- Single step: collect nickname, email, full name (optional), gender (optional), age_range (optional). Submit → `createPlayer`; on success redirect to `/home` or `/dashboard`. On failure (e.g. duplicate), show error; do not create duplicate row.
 
 ---
 
@@ -315,3 +318,5 @@ The app must provide a **persistent navigation element** so users can move betwe
 
 - **v1.0** — Initial domain document for P1 Foundation (auth, players table, RLS, data layer, admin skeleton).
 - **v1.1** — §12 Deviations added: RLS admin policies implemented via SECURITY DEFINER helper to avoid recursion (P1 implementation complete).
+- **v1.2** — §4.2, §5.3, §6.2, §7.2, §8: Added `nickname` column; used as the display name. `display_name` kept in sync for backward compatibility. Create/update payloads and profile/onboarding use nickname.
+- **v1.3** — §4.2, §4.3, §5.3, §6.2, §8: Added optional `full_name` column. Profile view/edit and onboarding include full name (optional). Create/update payloads accept full_name.

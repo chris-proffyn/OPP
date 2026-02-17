@@ -73,8 +73,10 @@ export async function createPlayer(
     .from(PLAYERS_TABLE)
     .insert({
       user_id: user.id,
-      display_name: payload.display_name,
+      nickname: payload.nickname,
+      display_name: payload.nickname,
       email: payload.email,
+      full_name: payload.full_name ?? null,
       gender: payload.gender ?? null,
       age_range: payload.age_range ?? null,
       baseline_rating: 0,
@@ -98,8 +100,12 @@ export async function updatePlayer(
   payload: UpdatePlayerPayload
 ): Promise<Player> {
   const updates: Record<string, unknown> = {};
-  if (payload.display_name !== undefined) updates.display_name = payload.display_name;
+  if (payload.nickname !== undefined) {
+    updates.nickname = payload.nickname;
+    updates.display_name = payload.nickname;
+  }
   if (payload.email !== undefined) updates.email = payload.email;
+  if (payload.full_name !== undefined) updates.full_name = payload.full_name;
   if (payload.gender !== undefined) updates.gender = payload.gender;
   if (payload.age_range !== undefined) updates.age_range = payload.age_range;
 
@@ -139,7 +145,7 @@ export async function listPlayers(client: SupabaseClient): Promise<Player[]> {
 
   const { data, error } = await client
     .from(PLAYERS_TABLE)
-    .select('id, user_id, display_name, email, gender, age_range, baseline_rating, training_rating, match_rating, player_rating, ita_score, ita_completed_at, tier, avatar_url, date_joined, role, created_at, updated_at');
+    .select('id, user_id, nickname, full_name, display_name, email, gender, age_range, baseline_rating, training_rating, match_rating, player_rating, ita_score, ita_completed_at, tier, avatar_url, date_joined, role, created_at, updated_at');
 
   if (error) mapSupabaseError(error);
   return (data ?? []) as Player[];
@@ -189,6 +195,32 @@ export async function setBaselineAndTrainingRating(
       baseline_rating: baselineRating,
       training_rating: baselineRating,
     })
+    .eq('id', playerId)
+    .select()
+    .single();
+
+  if (error) mapSupabaseError(error);
+  if (!data) throw new DataError('Player not found', 'NOT_FOUND');
+  return data as Player;
+}
+
+/**
+ * P6: Update a player's tier (admin only). RLS: only admin can update other players' tier.
+ * @returns Updated player. Throws FORBIDDEN if not admin, NOT_FOUND if player missing.
+ */
+export async function updatePlayerTier(
+  client: SupabaseClient,
+  playerId: string,
+  tier: 'free' | 'gold' | 'platinum'
+): Promise<Player> {
+  const current = await getCurrentPlayer(client);
+  if (!current || current.role !== 'admin') {
+    throw new DataError('Admin access required', 'FORBIDDEN');
+  }
+
+  const { data, error } = await client
+    .from(PLAYERS_TABLE)
+    .update({ tier })
     .eq('id', playerId)
     .select()
     .single();

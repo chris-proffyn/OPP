@@ -198,4 +198,31 @@ describe('getTrendForPlayer', () => {
     });
     expect(result).toBeNull();
   });
+
+  it('type session_score with windowDays 90: returns average in 90-day window', async () => {
+    const rows = [
+      { session_score: 78 },
+      { session_score: 82 },
+      { session_score: 80 },
+    ];
+    const client = createMockClient([{ data: rows, error: null }]);
+    const result = await getTrendForPlayer(client, 'pid-1', {
+      type: 'session_score',
+      windowDays: 90,
+    });
+    expect(result).toBe((78 + 82 + 80) / 3);
+  });
+
+  it('type session_score with windowDays null (all time): returns average with no date filter', async () => {
+    const rows = [
+      { session_score: 75 },
+      { session_score: 85 },
+    ];
+    const client = createMockClient([{ data: rows, error: null }]);
+    const result = await getTrendForPlayer(client, 'pid-1', {
+      type: 'session_score',
+      windowDays: null,
+    });
+    expect(result).toBe((75 + 85) / 2);
+  });
 });

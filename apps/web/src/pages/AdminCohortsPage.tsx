@@ -105,7 +105,11 @@ export function AdminCohortsPage() {
               <td style={thTdStyle}>
                 <Link to={`/admin/cohorts/${c.id}`}>Edit</Link>
                 {' · '}
+                <Link to={`/admin/cohorts/${c.id}/players`}>Players</Link>
+                {' · '}
                 <Link to={`/admin/cohorts/${c.id}/calendar`}>Calendar</Link>
+                {' · '}
+                <Link to={`/admin/cohorts/${c.id}/report`}>Report</Link>
                 {' · '}
                 <button
                   type="button"

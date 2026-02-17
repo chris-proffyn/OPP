@@ -6,7 +6,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { DataError } from './errors';
 import { getCurrentPlayer } from './players';
 import { getScheduleById } from './schedules';
-import type { Calendar, GenerateCalendarOptions } from './types';
+import type { Calendar, GenerateCalendarOptions, UpdateCalendarEntryPayload } from './types';
 import type { ScheduleEntry } from './types';
 
 const CALENDAR_TABLE = 'calendar';
@@ -175,6 +175,40 @@ export interface CalendarEntryWithDetails extends Calendar {
   session_name: string | null;
   cohort_name?: string | null;
   schedule_name?: string | null;
+}
+
+/**
+ * Update a calendar entry. Admin only. Only provided fields are updated.
+ * RLS: calendar_update_admin.
+ */
+export async function updateCalendarEntry(
+  client: SupabaseClient,
+  calendarId: string,
+  payload: UpdateCalendarEntryPayload
+): Promise<Calendar> {
+  await requireAdmin(client);
+  const updates: Record<string, unknown> = {};
+  if (payload.scheduled_at !== undefined) updates.scheduled_at = payload.scheduled_at;
+  if (payload.session_id !== undefined) updates.session_id = payload.session_id;
+  if (Object.keys(updates).length === 0) {
+    const { data: row, error: fetchError } = await client
+      .from(CALENDAR_TABLE)
+      .select('*')
+      .eq('id', calendarId)
+      .maybeSingle();
+    if (fetchError) mapError(fetchError);
+    if (!row) throw new DataError('Calendar entry not found', 'NOT_FOUND');
+    return row as Calendar;
+  }
+  const { data, error } = await client
+    .from(CALENDAR_TABLE)
+    .update(updates)
+    .eq('id', calendarId)
+    .select()
+    .single();
+  if (error) mapError(error);
+  if (!data) throw new DataError('Calendar entry not found', 'NOT_FOUND');
+  return data as Calendar;
 }
 
 /**
