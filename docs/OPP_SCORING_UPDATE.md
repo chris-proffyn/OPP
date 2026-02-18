@@ -1,64 +1,111 @@
-# SCORING UPDATE
+# OPP Scoring Update
 
-We need some changes to the current system behaviour
+Changes to scoring behaviour to support **routine types** (single-dart vs checkout) and **segment-specific expected values** from level accuracy data.
 
-## Routine Types
+---
 
-There are 2 types of routine: Single dart routines - ie. a routine that can be completed in a single throw e.g. S10, or D20, Checkout routines - i.e routines that require more than a single dart to complete e.g. checkout from 41
+## Implementation plan
 
-The different routine types require different scoring calculations and configuration data
+| Scope | Document | Description |
+|-------|----------|-------------|
+| **Single-dart + routine_type** | [OPP_SCORING_UPDATE_IMPLEMENTATION_TASKS.md](./OPP_SCORING_UPDATE_IMPLEMENTATION_TASKS.md) | Data model (routine_type on routine_steps and level_requirements), expected hits from level_averages, GE and Admin UI for SS/SD/ST. |
+| **Checkout (C)** | [OPP_CHECKOUT_TRAINING_DOMAIN.md](./OPP_CHECKOUT_TRAINING_DOMAIN.md) | Domain spec: expectation formula, step/routine/session scoring, player flow. |
+| **Checkout implementation** | [OPP_CHECKOUT_TRAINING_IMPLEMENTATION_CHECKLIST.md](./OPP_CHECKOUT_TRAINING_IMPLEMENTATION_CHECKLIST.md) | Detailed checklist: migrations (player_step_runs, dart_scores, config), expectation formula, GE flow, Admin. |
 
-### Single dart routines.
+---
 
-This is the current scoring method coded into the app. A target segment is set. The player is allowed a pre-determined number of darts (darts_allowed in level_requirements table) according to their ability level. The player's score is calculated based on the number of successful hits on the target segment compared to the expected hit number (tgt_hits) according to their level
+## Routine types
 
-#### Single dart routines - Single, Double, Treble segment
+There are two broad types of routine:
 
-Within the routine_type of S, there are sub-types of Single [S], Double [D] and Treble [T]. These denote whether the target segment is a single, double or treble. This gives us routine_types for single dart routines of SS, SD and ST
+1. **Single-dart routines** — completable in one throw (e.g. S10, D20). Sub-types by segment: **SS** (single), **SD** (double), **ST** (treble).
+2. **Checkout routines (C)** — require more than one dart (e.g. checkout from 41). Full behaviour is defined in **OPP_CHECKOUT_TRAINING_DOMAIN.md**.
 
-So we need to add a column routine_type to to the routine_steps table.
-We also need to add a column routine_type to the level_requirements table
+Different routine types use different scoring calculations and configuration data.
 
-#### Single dart scoring
+---
 
-The player will still be allowed the same number of darts at the target segment. The difference will be in the expected number of hits. e.g. A L30 player throwing 9 darts will be expected to hit a single segment 3 times, a double segment twice (e.g. 66% of the single segment expectation) times and a treble segment 1 (e.g. 33% of the single segment expectation) time. This ratio should be made configurable in an admin portal screen
+## Single-dart routines (SS, SD, ST)
 
-The scoring calculation is unchanged. Number of successful hits versus expected number (can be >100%)
+### Behaviour
 
+- A target segment is set. The player is allowed a fixed number of darts (`darts_allowed` in `level_requirements`) according to their level.
+- Score = (successful hits / expected hits) × 100. Scores may exceed 100%.
+- **Expected hits** are no longer a single `tgt_hits` per level; they are derived from **routine_type** and **level_averages** (segment accuracy: singles, doubles, trebles per level band).
 
-### Checkout routines
+### Segment sub-types
 
-This is not currently coded into the platform. In these routines, more than a single dart is requried to complete the routine. e.g. minimum checkout target is 3 (1,D1) requiring 2 a minimum of darts and maximum is 170 (T20,T20,Bull) requiring a minimum of 3 darts
+- **SS** = single segment  
+- **SD** = double segment  
+- **ST** = treble segment  
 
-### Checkout dart scoring
+Example: a L30 player throwing 9 darts is expected to hit a single more often than a double or treble; `level_averages` holds the segment accuracy percentages per level band.
 
-The player will be given a checkout target, an expected number of darts to checkout the target, and the maximum number of allowed throws/visits. The players throws are recorded. If they checkout within the tgt number of throws, then their score is calculated.
+### UX
 
-For a given level, the expectation will be given e.g. checkout in Min+3 2 or more times. this provides a similar scoring system to the single dart scoring
+- Expected value is calculated at the **routine** level and displayed on the **routine** screen.
+- Remove the global “Expected: tgt_hits/darts_allowed” from the **session** screen.
+- Use `routine_type` (SS, SD, ST) to determine which accuracy (single/double/treble) to use for expected hits.
 
-e.g. A level 20 player is expected to checkout a C2 checkout in Min +3, 2/9 times. This means we can still use the level_requirements table as is, we just need a different scoring routine for checkout
+### Scoring formula (unchanged)
 
-The logic should be:
+- Round score (%) = (hits / expectedHits) × 100.  
+- Routine/session score = average of round scores.  
+- Only the **source** of “expected hits” changes: from level_averages + routine_type instead of a single tgt_hits.
 
-1. What is the routine_type = Checkout Type
-2. What is the checkout value = 121
-3. How many darts should the player take (lookup player level, and check against the checkout_requirments table) = 6 (min+4)
+---
 
-## Data model changes
+## Checkout routines (C)
+
+**Implemented.** See **[OPP_CHECKOUT_TRAINING_DOMAIN.md](./OPP_CHECKOUT_TRAINING_DOMAIN.md)** for:
+
+- Expectation formula (expected checkout completions per step)
+- Step score: (actual_successes / expected_successes_int) × 100, capped
+- Routine and session score aggregation
+- Player flow (attempts, darts, success criteria)
+
+**[OPP_CHECKOUT_TRAINING_IMPLEMENTATION_CHECKLIST.md](./OPP_CHECKOUT_TRAINING_IMPLEMENTATION_CHECKLIST.md)** — full implementation checklist (§1–§8). Delivered: migrations (player_step_runs, player_attempt_results, attempt_index on dart_scores, checkout config on level_requirements), expectation formula and getExpectedCheckoutSuccesses in @opp/data, step/routine/session scoring, Game Engine checkout flow (PlaySessionPage), admin routine/level-requirement UI for C, unit tests and documentation.
+
+---
+
+## Data model changes (summary)
 
 ### routine_steps
-Add a routine_type to the routine_steps table. allowed values are SS, SD, ST, C2, C3
+
+- Add column **routine_type**. Allowed values: `SS`, `SD`, `ST`, `C`.  
+- Drives expected-value calculation and scoring behaviour.  
+- Implemented in migration `20260230120000_add_routine_type_to_steps_and_level_requirements.sql`.
 
 ### level_requirements
-Add a routine_type to the routine_steps table. allowed values are SS, SD, ST, C2, C3.
 
-This extra columns allows admins to configure the expected tgt_hits value for other routine_types than SS
+- Add column **routine_type**. Allowed values: `SS`, `SD`, `ST`, `C`.  
+- Uniqueness changed to **(min_level, routine_type)** so each level band can have one row per routine type (e.g. 0–9 SS, 0–9 SD, 0–9 ST, 0–9 C).  
+- `tgt_hits` and `darts_allowed` apply per (min_level, routine_type) for single-dart; checkout (C) may use additional config (see checkout implementation checklist).  
+- Implemented in the same migration as above.
 
-### Multiple dart routines - scoring
+---
 
-For types C2,C3 the scoring logic must reference the type to determine the minimum number of darts possible when calculating the routine score.
+## Implemented (single-dart scoring update)
 
-#### Checkout requirements
+Implementation is tracked in **[OPP_SCORING_UPDATE_IMPLEMENTATION_TASKS.md](./OPP_SCORING_UPDATE_IMPLEMENTATION_TASKS.md)**. Summary:
+
+- **§1–2** Data model and types: `routine_type` on `routine_steps` and `level_requirements`; migration backfill from target (D→SD, T→ST, else SS); unique (min_level, routine_type); `getLevelRequirementByMinLevelAndRoutineType`, `getExpectedHitsForSingleDartRoutine` from `level_averages`.
+- **§3** Scoring: round score still (hits / expectedHits) × 100; expected hits come from `getExpectedHitsForSingleDartRoutine` (level_averages + routine_type) for SS/SD/ST.
+- **§4** GE UI: routine-level “Expected (this step): X hits from Y darts”; session-level “Expected: tgt_hits/darts_allowed” removed.
+- **§5** Admin UI: routine steps and level requirements forms include `routine_type` (SS, SD, ST, C); steps suggest routine_type from target.
+- **§7** Unit tests: `level-averages.test.ts` (expected-hit from level_averages + routine_type + darts_allowed), level_requirements and routines CRUD with routine_type and uniqueness.
+
+Deviations / notes:
+
+- Bull segment: no separate routine_type (e.g. SB); bull accuracy is in `level_averages.bull_acc_pct` for future checkout or bull-specific routines.
+- Existing steps without `routine_type` were backfilled from target in migration; default for new steps in UI is SS.
+
+
+
+
+
+
+
 
 
 

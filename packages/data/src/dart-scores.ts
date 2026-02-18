@@ -40,19 +40,21 @@ export async function insertDartScore(
   payload: DartScorePayload
 ): Promise<DartScore> {
   assertValidResult(payload.result);
+  const row: Record<string, unknown> = {
+    player_id: payload.player_id,
+    training_id: payload.training_id,
+    routine_id: payload.routine_id,
+    routine_no: payload.routine_no,
+    step_no: payload.step_no,
+    dart_no: payload.dart_no,
+    target: payload.target,
+    actual: payload.actual,
+    result: payload.result,
+  };
+  if (payload.attempt_index != null) row.attempt_index = payload.attempt_index;
   const { data, error } = await client
     .from(DART_SCORES_TABLE)
-    .insert({
-      player_id: payload.player_id,
-      training_id: payload.training_id,
-      routine_id: payload.routine_id,
-      routine_no: payload.routine_no,
-      step_no: payload.step_no,
-      dart_no: payload.dart_no,
-      target: payload.target,
-      actual: payload.actual,
-      result: payload.result,
-    })
+    .insert(row)
     .select()
     .single();
   if (error) mapError(error);
@@ -69,17 +71,21 @@ export async function insertDartScores(
 ): Promise<DartScore[]> {
   if (payloads.length === 0) return [];
   for (const p of payloads) assertValidResult(p.result);
-  const rows = payloads.map((p) => ({
-    player_id: p.player_id,
-    training_id: p.training_id,
-    routine_id: p.routine_id,
-    routine_no: p.routine_no,
-    step_no: p.step_no,
-    dart_no: p.dart_no,
-    target: p.target,
-    actual: p.actual,
-    result: p.result,
-  }));
+  const rows = payloads.map((p) => {
+    const row: Record<string, unknown> = {
+      player_id: p.player_id,
+      training_id: p.training_id,
+      routine_id: p.routine_id,
+      routine_no: p.routine_no,
+      step_no: p.step_no,
+      dart_no: p.dart_no,
+      target: p.target,
+      actual: p.actual,
+      result: p.result,
+    };
+    if (p.attempt_index != null) row.attempt_index = p.attempt_index;
+    return row;
+  });
   const { data, error } = await client.from(DART_SCORES_TABLE).insert(rows).select();
   if (error) mapError(error);
   return (data ?? []) as DartScore[];
@@ -95,7 +101,7 @@ export async function listDartScoresByTrainingId(
 ): Promise<DartScore[]> {
   const { data, error } = await client
     .from(DART_SCORES_TABLE)
-    .select('id, player_id, training_id, routine_id, routine_no, step_no, dart_no, target, actual, result, created_at')
+    .select('id, player_id, training_id, routine_id, routine_no, step_no, dart_no, attempt_index, target, actual, result, created_at')
     .eq('training_id', trainingId)
     .order('routine_no', { ascending: true })
     .order('step_no', { ascending: true })

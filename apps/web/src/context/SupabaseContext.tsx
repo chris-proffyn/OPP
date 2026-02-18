@@ -106,11 +106,11 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
       setUser(session?.user ?? null);
       setAuthError(null);
       setAuthLoading(false);
+      setPlayer(null);
       if (session?.user) {
         setPlayerLoading(true);
         void fetchPlayer();
       } else {
-        setPlayer(null);
         setPlayerLoading(false);
       }
     });

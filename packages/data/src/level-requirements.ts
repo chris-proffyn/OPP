@@ -8,6 +8,7 @@ import { getCurrentPlayer } from './players';
 import type {
   CreateLevelRequirementPayload,
   LevelRequirement,
+  RoutineType,
   UpdateLevelRequirementPayload,
 } from './types';
 
@@ -42,7 +43,7 @@ function mapError(err: unknown): never {
       throw new DataError('Level requirement not found', 'NOT_FOUND');
     }
     if (code === PG_UNIQUE_VIOLATION) {
-      throw new DataError('A level requirement for this min_level already exists', 'CONFLICT');
+      throw new DataError('A level requirement for this min_level and routine_type already exists', 'CONFLICT');
     }
   }
   console.error('[@opp/data] Supabase error:', err);
@@ -65,20 +66,33 @@ export async function listLevelRequirements(
 }
 
 /**
- * Get one level requirement by min_level (decade start: 0, 10, 20, …, 90). Returns null if not found.
+ * Get one level requirement by min_level and routine_type. Returns null if not found.
  * Callable by any authenticated user (for GE level-check display). RLS allows SELECT for auth.uid() IS NOT NULL.
  */
-export async function getLevelRequirementByMinLevel(
+export async function getLevelRequirementByMinLevelAndRoutineType(
   client: SupabaseClient,
-  minLevel: number
+  minLevel: number,
+  routineType: RoutineType
 ): Promise<LevelRequirement | null> {
   const { data, error } = await client
     .from(LEVEL_REQUIREMENTS_TABLE)
     .select('*')
     .eq('min_level', minLevel)
+    .eq('routine_type', routineType)
     .maybeSingle();
   if (error) mapError(error);
   return data as LevelRequirement | null;
+}
+
+/**
+ * Get one level requirement by min_level (decade start: 0, 10, 20, …, 90). Returns the SS row if present, else null.
+ * For backward compatibility; prefer getLevelRequirementByMinLevelAndRoutineType when routine_type is known.
+ */
+export async function getLevelRequirementByMinLevel(
+  client: SupabaseClient,
+  minLevel: number
+): Promise<LevelRequirement | null> {
+  return getLevelRequirementByMinLevelAndRoutineType(client, minLevel, 'SS');
 }
 
 /**
@@ -89,13 +103,17 @@ export async function createLevelRequirement(
   payload: CreateLevelRequirementPayload
 ): Promise<LevelRequirement> {
   await requireAdmin(client);
+  const row: Record<string, unknown> = {
+    min_level: payload.min_level,
+    tgt_hits: payload.tgt_hits,
+    darts_allowed: payload.darts_allowed,
+    routine_type: payload.routine_type,
+  };
+  if (payload.attempt_count !== undefined) row.attempt_count = payload.attempt_count;
+  if (payload.allowed_throws_per_attempt !== undefined) row.allowed_throws_per_attempt = payload.allowed_throws_per_attempt;
   const { data, error } = await client
     .from(LEVEL_REQUIREMENTS_TABLE)
-    .insert({
-      min_level: payload.min_level,
-      tgt_hits: payload.tgt_hits,
-      darts_allowed: payload.darts_allowed,
-    })
+    .insert(row)
     .select()
     .single();
   if (error) mapError(error);
@@ -115,6 +133,9 @@ export async function updateLevelRequirement(
   if (payload.min_level !== undefined) updates.min_level = payload.min_level;
   if (payload.tgt_hits !== undefined) updates.tgt_hits = payload.tgt_hits;
   if (payload.darts_allowed !== undefined) updates.darts_allowed = payload.darts_allowed;
+  if (payload.routine_type !== undefined) updates.routine_type = payload.routine_type;
+  if (payload.attempt_count !== undefined) updates.attempt_count = payload.attempt_count;
+  if (payload.allowed_throws_per_attempt !== undefined) updates.allowed_throws_per_attempt = payload.allowed_throws_per_attempt;
   if (Object.keys(updates).length === 0) {
     const { data: row, error: fetchError } = await client
       .from(LEVEL_REQUIREMENTS_TABLE)

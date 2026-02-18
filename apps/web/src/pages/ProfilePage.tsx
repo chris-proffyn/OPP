@@ -94,6 +94,10 @@ export function ProfilePage() {
         <Link to="/profile/edit" style={linkStyle}>
           Edit profile
         </Link>
+        {' · '}
+        <Link to="/profile/checkout-variations" style={linkStyle}>
+          Checkout preferences
+        </Link>
       </p>
     </>
   );

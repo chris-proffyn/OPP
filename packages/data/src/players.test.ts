@@ -35,15 +35,13 @@ function mockClient(overrides: {
       if (cols && cols !== '*') {
         return Promise.resolve(listResult);
       }
-      return {
-        limit: () => ({
-          maybeSingle: () => Promise.resolve(selectResult),
-        }),
-        eq: () => ({
-          maybeSingle: () => Promise.resolve(selectResult),
-        }),
+      const maybeSingleFn = () => Promise.resolve(selectResult);
+      const chain = {
+        limit: () => ({ maybeSingle: maybeSingleFn }),
+        eq: () => ({ limit: () => ({ maybeSingle: maybeSingleFn }), maybeSingle: maybeSingleFn }),
         single: () => Promise.resolve(selectResult),
       };
+      return chain;
     },
     insert: () => ({
       select: () => ({
@@ -82,13 +80,25 @@ const samplePlayer = {
 
 describe('getCurrentPlayer', () => {
   it('returns player when row exists', async () => {
-    const client = mockClient({ select: { data: samplePlayer, error: null } });
+    const client = mockClient({
+      authGetUser: { user: { id: 'uid-1' }, error: null },
+      select: { data: samplePlayer, error: null },
+    });
     const result = await getCurrentPlayer(client);
     expect(result).toEqual(samplePlayer);
   });
 
   it('returns null when no row', async () => {
     const client = mockClient({ select: { data: null, error: null } });
+    const result = await getCurrentPlayer(client);
+    expect(result).toBeNull();
+  });
+
+  it('returns null when not authenticated', async () => {
+    const client = mockClient({
+      authGetUser: { user: null, error: null },
+      select: { data: samplePlayer, error: null },
+    });
     const result = await getCurrentPlayer(client);
     expect(result).toBeNull();
   });
@@ -147,7 +157,10 @@ describe('updatePlayer', () => {
   });
 
   it('returns current player when payload is empty', async () => {
-    const client = mockClient({ select: { data: samplePlayer, error: null } });
+    const client = mockClient({
+      authGetUser: { user: { id: 'uid-1' }, error: null },
+      select: { data: samplePlayer, error: null },
+    });
     const result = await updatePlayer(client, {});
     expect(result).toEqual(samplePlayer);
   });
@@ -155,6 +168,7 @@ describe('updatePlayer', () => {
   it('throws NOT_FOUND when update returns no row', async () => {
     const client = mockClient({
       authGetUser: { user: { id: 'uid-1' }, error: null },
+      select: { data: samplePlayer, error: null },
       update: { data: null, error: null },
     });
     await expect(updatePlayer(client, { nickname: 'Updated' })).rejects.toThrow(DataError);
@@ -167,7 +181,10 @@ describe('updatePlayer', () => {
 
 describe('listPlayers', () => {
   it('throws FORBIDDEN when current user is not admin', async () => {
-    const client = mockClient({ select: { data: { ...samplePlayer, role: 'player' }, error: null } });
+    const client = mockClient({
+      authGetUser: { user: { id: 'uid-1' }, error: null },
+      select: { data: { ...samplePlayer, role: 'player' }, error: null },
+    });
     await expect(listPlayers(client)).rejects.toThrow(DataError);
     await expect(listPlayers(client)).rejects.toMatchObject({
       code: 'FORBIDDEN',
@@ -178,6 +195,7 @@ describe('listPlayers', () => {
   it('returns list when current user is admin', async () => {
     const admin = { ...samplePlayer, role: 'admin' as const };
     const client = mockClient({
+      authGetUser: { user: { id: 'uid-1' }, error: null },
       select: { data: admin, error: null },
       listSelect: { data: [admin, { ...samplePlayer, id: 'pid-2' }], error: null },
     });
@@ -245,6 +263,7 @@ describe('updatePlayerTier', () => {
     const admin = { ...samplePlayer, role: 'admin' as const };
     const updated = { ...samplePlayer, tier: 'platinum' as const };
     const client = mockClient({
+      authGetUser: { user: { id: 'uid-1' }, error: null },
       select: { data: admin, error: null },
       update: { data: updated, error: null },
     });
@@ -253,7 +272,10 @@ describe('updatePlayerTier', () => {
   });
 
   it('throws FORBIDDEN when current user is not admin', async () => {
-    const client = mockClient({ select: { data: { ...samplePlayer, role: 'player' }, error: null } });
+    const client = mockClient({
+      authGetUser: { user: { id: 'uid-1' }, error: null },
+      select: { data: { ...samplePlayer, role: 'player' }, error: null },
+    });
     await expect(updatePlayerTier(client, 'pid-1', 'gold')).rejects.toThrow(DataError);
     await expect(updatePlayerTier(client, 'pid-1', 'gold')).rejects.toMatchObject({
       code: 'FORBIDDEN',
@@ -264,6 +286,7 @@ describe('updatePlayerTier', () => {
   it('throws NOT_FOUND when player missing', async () => {
     const admin = { ...samplePlayer, role: 'admin' as const };
     const client = mockClient({
+      authGetUser: { user: { id: 'uid-1' }, error: null },
       select: { data: admin, error: null },
       update: { data: null, error: null },
     });

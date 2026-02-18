@@ -95,11 +95,22 @@ export interface Routine {
   updated_at: string;
 }
 
+/** Routine type: SS = single segment, SD = double, ST = treble, C = checkout. Used for expected-hit calculation. */
+export type RoutineType = 'SS' | 'SD' | 'ST' | 'C';
+
+export const ROUTINE_TYPES: RoutineType[] = ['SS', 'SD', 'ST', 'C'];
+
+export function isRoutineType(s: string): s is RoutineType {
+  return ROUTINE_TYPES.includes(s as RoutineType);
+}
+
 export interface RoutineStep {
   id: string;
   routine_id: string;
   step_no: number;
   target: string;
+  /** SS, SD, ST, or C. Drives expected-hit calculation from level_averages. */
+  routine_type: RoutineType;
   created_at: string;
   updated_at: string;
 }
@@ -109,6 +120,12 @@ export interface LevelRequirement {
   min_level: number;
   tgt_hits: number;
   darts_allowed: number;
+  /** SS, SD, ST, or C. One row per (min_level, routine_type). */
+  routine_type: RoutineType;
+  /** Checkout (C) only: attempts per step. Default 9. */
+  attempt_count?: number | null;
+  /** Checkout (C) only: darts per attempt. Default 9. */
+  allowed_throws_per_attempt?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -144,12 +161,96 @@ export interface CreateLevelRequirementPayload {
   min_level: number;
   tgt_hits: number;
   darts_allowed: number;
+  routine_type: RoutineType;
+  /** Checkout (C) only. Default 9. */
+  attempt_count?: number | null;
+  /** Checkout (C) only. Default 9. */
+  allowed_throws_per_attempt?: number | null;
 }
 
 export interface UpdateLevelRequirementPayload {
   min_level?: number;
   tgt_hits?: number;
   darts_allowed?: number;
+  routine_type?: RoutineType;
+  attempt_count?: number | null;
+  allowed_throws_per_attempt?: number | null;
+}
+
+/** Checkout combinations: total 2–170, recommended darts (e.g. T20, D20, Bull). */
+export interface CheckoutCombination {
+  id: string;
+  total: number;
+  dart1: string | null;
+  dart2: string | null;
+  dart3: string | null;
+  created_at: string;
+}
+
+export interface UpdateCheckoutCombinationPayload {
+  dart1?: string | null;
+  dart2?: string | null;
+  dart3?: string | null;
+}
+
+/** Player-specific checkout variation: one per (player_id, total). */
+export interface PlayerCheckoutVariation {
+  id: string;
+  player_id: string;
+  total: number;
+  dart1: string | null;
+  dart2: string | null;
+  dart3: string | null;
+  created_at: string;
+}
+
+export interface CreatePlayerCheckoutVariationPayload {
+  total: number;
+  dart1?: string | null;
+  dart2?: string | null;
+  dart3?: string | null;
+}
+
+export interface UpdatePlayerCheckoutVariationPayload {
+  dart1?: string | null;
+  dart2?: string | null;
+  dart3?: string | null;
+}
+
+/** Level averages: level bands (level_min–level_max) with 3DA and accuracy %. */
+export interface LevelAverage {
+  id: string;
+  level_min: number;
+  level_max: number;
+  description: string;
+  three_dart_avg: number;
+  single_acc_pct: number | null;
+  double_acc_pct: number | null;
+  treble_acc_pct: number | null;
+  bull_acc_pct: number | null;
+  created_at: string;
+}
+
+export interface CreateLevelAveragePayload {
+  level_min: number;
+  level_max: number;
+  description: string;
+  three_dart_avg: number;
+  single_acc_pct?: number | null;
+  double_acc_pct?: number | null;
+  treble_acc_pct?: number | null;
+  bull_acc_pct?: number | null;
+}
+
+export interface UpdateLevelAveragePayload {
+  level_min?: number;
+  level_max?: number;
+  description?: string;
+  three_dart_avg?: number;
+  single_acc_pct?: number | null;
+  double_acc_pct?: number | null;
+  treble_acc_pct?: number | null;
+  bull_acc_pct?: number | null;
 }
 
 export interface ScheduleEntryInput {
@@ -166,6 +267,8 @@ export interface SessionRoutineInput {
 export interface RoutineStepInput {
   step_no: number;
   target: string;
+  /** SS, SD, ST, or C. Defaults to SS if omitted. */
+  routine_type?: RoutineType;
 }
 
 // ---------------------------------------------------------------------------
@@ -278,8 +381,68 @@ export interface SessionRun {
   started_at: string;
   completed_at: string | null;
   session_score: number | null;
+  /** Player level at session start; used for checkout expected_successes. */
+  player_level_snapshot?: number | null;
   created_at: string;
   updated_at: string;
+}
+
+/** Per-step run for checkout routines. One per (training_id, routine_id, step_no). */
+export interface PlayerStepRun {
+  id: string;
+  player_id: string;
+  training_id: string;
+  routine_id: string;
+  routine_no: number;
+  step_no: number;
+  routine_step_id: string | null;
+  checkout_target: number;
+  expected_successes: number;
+  expected_successes_int: number;
+  actual_successes: number;
+  step_score: number | null;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreatePlayerStepRunPayload {
+  player_id: string;
+  training_id: string;
+  routine_id: string;
+  routine_no: number;
+  step_no: number;
+  routine_step_id?: string | null;
+  checkout_target: number;
+  expected_successes: number;
+  expected_successes_int: number;
+  actual_successes?: number;
+  step_score?: number | null;
+  completed_at?: string | null;
+}
+
+export interface UpdatePlayerStepRunPayload {
+  actual_successes?: number;
+  step_score?: number | null;
+  completed_at?: string | null;
+}
+
+/** Per-attempt success/failure for checkout steps. actual_successes = count where is_success for the step run. */
+export interface PlayerAttemptResult {
+  id: string;
+  player_step_run_id: string;
+  attempt_index: number;
+  is_success: boolean;
+  darts_used: number;
+  completed_at: string;
+}
+
+export interface CreatePlayerAttemptResultPayload {
+  player_step_run_id: string;
+  attempt_index: number;
+  is_success: boolean;
+  darts_used: number;
+  completed_at?: string | null;
 }
 
 export interface DartScore {
@@ -290,6 +453,8 @@ export interface DartScore {
   routine_no: number;
   step_no: number;
   dart_no: number;
+  /** For checkout (C): 1..attempt_count per step. Null for non-checkout. */
+  attempt_index?: number | null;
   target: string;
   actual: string;
   result: 'H' | 'M';
@@ -313,6 +478,8 @@ export interface DartScorePayload {
   routine_no: number;
   step_no: number;
   dart_no: number;
+  /** For checkout (C): 1..attempt_count per step. Omit for non-checkout. */
+  attempt_index?: number | null;
   target: string;
   actual: string;
   result: 'H' | 'M';

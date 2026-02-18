@@ -36,23 +36,27 @@ function mapError(err: unknown): never {
 /**
  * Create a session run (player starts a calendar session). If a run already exists for
  * (playerId, calendarId), returns that run so the player can resume. Otherwise inserts and returns the new run.
+ * Optional player_level_snapshot: set when starting a checkout session for expected_successes calculation.
  */
 export async function createSessionRun(
   client: SupabaseClient,
   playerId: string,
-  calendarId: string
+  calendarId: string,
+  options?: { player_level_snapshot?: number | null }
 ): Promise<SessionRun> {
   const { data: existing } = await client
     .from(SESSION_RUNS_TABLE)
-    .select('id, player_id, calendar_id, started_at, completed_at, session_score, created_at, updated_at')
+    .select('id, player_id, calendar_id, started_at, completed_at, session_score, player_level_snapshot, created_at, updated_at')
     .eq('player_id', playerId)
     .eq('calendar_id', calendarId)
     .maybeSingle();
   if (existing) return existing as SessionRun;
 
+  const insertRow: Record<string, unknown> = { player_id: playerId, calendar_id: calendarId };
+  if (options?.player_level_snapshot !== undefined) insertRow.player_level_snapshot = options.player_level_snapshot;
   const { data, error } = await client
     .from(SESSION_RUNS_TABLE)
-    .insert({ player_id: playerId, calendar_id: calendarId })
+    .insert(insertRow)
     .select()
     .single();
   if (error) {
@@ -77,7 +81,7 @@ export async function getSessionRunByPlayerAndCalendar(
 ): Promise<SessionRun | null> {
   const { data, error } = await client
     .from(SESSION_RUNS_TABLE)
-    .select('id, player_id, calendar_id, started_at, completed_at, session_score, created_at, updated_at')
+    .select('id, player_id, calendar_id, started_at, completed_at, session_score, player_level_snapshot, created_at, updated_at')
     .eq('player_id', playerId)
     .eq('calendar_id', calendarId)
     .maybeSingle();
@@ -94,7 +98,7 @@ export async function getSessionRunById(
 ): Promise<SessionRun | null> {
   const { data, error } = await client
     .from(SESSION_RUNS_TABLE)
-    .select('id, player_id, calendar_id, started_at, completed_at, session_score, created_at, updated_at')
+    .select('id, player_id, calendar_id, started_at, completed_at, session_score, player_level_snapshot, created_at, updated_at')
     .eq('id', sessionRunId)
     .maybeSingle();
   if (error) mapError(error);
@@ -103,19 +107,23 @@ export async function getSessionRunById(
 
 /**
  * Complete a session run: set completed_at and session_score. RLS ensures only the run owner (or admin) can update.
+ * Optional player_level_snapshot: set if not already set at start (e.g. for checkout expected_successes).
  * Throws NOT_FOUND if no row (e.g. wrong id or not allowed).
  */
 export async function completeSessionRun(
   client: SupabaseClient,
   sessionRunId: string,
-  sessionScore: number
+  sessionScore: number,
+  options?: { player_level_snapshot?: number | null }
 ): Promise<SessionRun> {
+  const updates: Record<string, unknown> = {
+    completed_at: new Date().toISOString(),
+    session_score: sessionScore,
+  };
+  if (options?.player_level_snapshot !== undefined) updates.player_level_snapshot = options.player_level_snapshot;
   const { data, error } = await client
     .from(SESSION_RUNS_TABLE)
-    .update({
-      completed_at: new Date().toISOString(),
-      session_score: sessionScore,
-    })
+    .update(updates)
     .eq('id', sessionRunId)
     .select()
     .single();

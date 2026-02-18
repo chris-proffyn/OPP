@@ -1,28 +1,42 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { createLevelRequirement, isDataError } from '@opp/data';
+import { createLevelRequirement, isDataError, ROUTINE_TYPES } from '@opp/data';
+import type { RoutineType } from '@opp/data';
 import { useSupabase } from '../context/SupabaseContext';
 
-/** New level requirement: min_level, tgt_hits, darts_allowed. CONFLICT = min_level already exists. */
+/** New level requirement: min_level, routine_type, tgt_hits, darts_allowed. CONFLICT = (min_level, routine_type) already exists. */
 export function AdminLevelRequirementNewPage() {
   const { supabase } = useSupabase();
   const navigate = useNavigate();
   const [minLevel, setMinLevel] = useState<number>(0);
+  const [routineType, setRoutineType] = useState<RoutineType>('SS');
   const [tgtHits, setTgtHits] = useState<number>(0);
   const [dartsAllowed, setDartsAllowed] = useState<number>(9);
+  const [attemptCount, setAttemptCount] = useState<number>(9);
+  const [allowedThrowsPerAttempt, setAllowedThrowsPerAttempt] = useState<number>(9);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (routineType === 'C' && (attemptCount < 1 || allowedThrowsPerAttempt < 1)) {
+      setError('For checkout (C), attempt_count and allowed_throws_per_attempt must be ≥ 1.');
+      return;
+    }
     setError(null);
     setSubmitting(true);
     try {
-      const row = await createLevelRequirement(supabase, {
+      const payload = {
         min_level: minLevel,
+        routine_type: routineType,
         tgt_hits: tgtHits,
         darts_allowed: dartsAllowed,
-      });
+        ...(routineType === 'C' && {
+          attempt_count: attemptCount,
+          allowed_throws_per_attempt: allowedThrowsPerAttempt,
+        }),
+      };
+      const row = await createLevelRequirement(supabase, payload);
       navigate(`/admin/level-requirements/${row.id}`);
     } catch (err) {
       setError(isDataError(err) ? err.message : 'Failed to create level requirement.');
@@ -35,7 +49,7 @@ export function AdminLevelRequirementNewPage() {
     <div>
       <h1>New level requirement</h1>
       <p style={{ marginBottom: '0.75rem', color: '#666', fontSize: '0.9rem' }}>
-        min_level is typically 0, 10, 20, …, 90 (one per decade).
+        One row per (min_level, routine_type). min_level is typically 0, 10, 20, …, 90.
       </p>
       <form onSubmit={handleSubmit} style={{ maxWidth: '16rem' }}>
         <div style={{ marginBottom: '0.75rem' }}>
@@ -52,6 +66,22 @@ export function AdminLevelRequirementNewPage() {
             disabled={submitting}
             style={{ width: '5rem', padding: '0.35rem' }}
           />
+        </div>
+        <div style={{ marginBottom: '0.75rem' }}>
+          <label htmlFor="lr-routine-type" style={{ display: 'block', marginBottom: '0.25rem' }}>
+            routine_type
+          </label>
+          <select
+            id="lr-routine-type"
+            value={routineType}
+            onChange={(e) => setRoutineType(e.target.value as RoutineType)}
+            disabled={submitting}
+            style={{ padding: '0.35rem', minWidth: '6rem' }}
+          >
+            {ROUTINE_TYPES.map((rt) => (
+              <option key={rt} value={rt}>{rt}</option>
+            ))}
+          </select>
         </div>
         <div style={{ marginBottom: '0.75rem' }}>
           <label htmlFor="lr-tgt-hits" style={{ display: 'block', marginBottom: '0.25rem' }}>
@@ -83,6 +113,44 @@ export function AdminLevelRequirementNewPage() {
             style={{ width: '5rem', padding: '0.35rem' }}
           />
         </div>
+        {routineType === 'C' && (
+          <>
+            <div style={{ marginBottom: '0.75rem' }}>
+              <label htmlFor="lr-attempt-count" style={{ display: 'block', marginBottom: '0.25rem' }}>
+                attempt_count (checkout)
+              </label>
+              <input
+                id="lr-attempt-count"
+                type="number"
+                min={1}
+                max={99}
+                value={attemptCount}
+                onChange={(e) => setAttemptCount(parseInt(e.target.value, 10) || 1)}
+                required
+                disabled={submitting}
+                style={{ width: '5rem', padding: '0.35rem' }}
+              />
+              <span style={{ marginLeft: '0.5rem', fontSize: '0.9rem', color: '#666' }}>attempts per step</span>
+            </div>
+            <div style={{ marginBottom: '0.75rem' }}>
+              <label htmlFor="lr-throws-per-attempt" style={{ display: 'block', marginBottom: '0.25rem' }}>
+                allowed_throws_per_attempt (checkout)
+              </label>
+              <input
+                id="lr-throws-per-attempt"
+                type="number"
+                min={1}
+                max={9}
+                value={allowedThrowsPerAttempt}
+                onChange={(e) => setAllowedThrowsPerAttempt(parseInt(e.target.value, 10) || 1)}
+                required
+                disabled={submitting}
+                style={{ width: '5rem', padding: '0.35rem' }}
+              />
+              <span style={{ marginLeft: '0.5rem', fontSize: '0.9rem', color: '#666' }}>darts per attempt</span>
+            </div>
+          </>
+        )}
         {error && <p role="alert" style={{ color: '#c00', marginBottom: '0.5rem' }}>{error}</p>}
         <button type="submit" disabled={submitting}>
           {submitting ? 'Creating…' : 'Create'}

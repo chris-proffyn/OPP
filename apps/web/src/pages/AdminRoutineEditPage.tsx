@@ -3,15 +3,26 @@ import { Link, useParams } from 'react-router-dom';
 import {
   getRoutineById,
   isDataError,
+  ROUTINE_TYPES,
   setRoutineSteps,
   updateRoutine,
 } from '@opp/data';
-import type { RoutineStepInput } from '@opp/data';
+import type { RoutineStepInput, RoutineType } from '@opp/data';
 import { useSupabase } from '../context/SupabaseContext';
 
 type StepRow = RoutineStepInput;
 
-/** Edit routine: name, description, routine_steps (step_no, target). */
+function suggestRoutineTypeFromTarget(target: string): RoutineType {
+  const t = target.trim();
+  const n = parseInt(t, 10);
+  if (String(n) === t && !Number.isNaN(n) && n >= 2 && n <= 170) return 'C';
+  const u = t.toUpperCase();
+  if (u.startsWith('D')) return 'SD';
+  if (u.startsWith('T')) return 'ST';
+  return 'SS';
+}
+
+/** Edit routine: name, description, routine_steps (step_no, target, routine_type). */
 export function AdminRoutineEditPage() {
   const { supabase } = useSupabase();
   const { id } = useParams<{ id: string }>();
@@ -37,6 +48,7 @@ export function AdminRoutineEditPage() {
             data.steps.map((s) => ({
               step_no: s.step_no,
               target: s.target,
+              routine_type: s.routine_type ?? suggestRoutineTypeFromTarget(s.target),
             }))
           );
         } else {
@@ -55,7 +67,7 @@ export function AdminRoutineEditPage() {
 
   const addRow = () => {
     const nextNo = steps.length ? Math.max(...steps.map((s) => s.step_no)) + 1 : 1;
-    setSteps((prev) => [...prev, { step_no: nextNo, target: '' }]);
+    setSteps((prev) => [...prev, { step_no: nextNo, target: '', routine_type: 'SS' }]);
   };
 
   const removeRow = (index: number) => {
@@ -65,7 +77,11 @@ export function AdminRoutineEditPage() {
   const updateStep = (index: number, field: keyof StepRow, value: number | string) => {
     setSteps((prev) => {
       const next = [...prev];
-      (next[index] as Record<string, number | string>)[field] = value;
+      const row = next[index] as Record<string, unknown>;
+      row[field] = value;
+      if (field === 'target' && typeof value === 'string') {
+        row.routine_type = suggestRoutineTypeFromTarget(value);
+      }
       return next;
     });
   };
@@ -82,7 +98,11 @@ export function AdminRoutineEditPage() {
     setSubmitting(true);
     try {
       await updateRoutine(supabase, id, { name, description: description.trim() || null });
-      await setRoutineSteps(supabase, id, steps.map((s) => ({ step_no: s.step_no, target: s.target.trim() })));
+      await setRoutineSteps(supabase, id, steps.map((s) => ({
+        step_no: s.step_no,
+        target: s.target.trim(),
+        routine_type: s.routine_type ?? suggestRoutineTypeFromTarget(s.target),
+      })));
       load();
     } catch (err) {
       setError(isDataError(err) ? err.message : 'Failed to save routine.');
@@ -132,13 +152,14 @@ export function AdminRoutineEditPage() {
         </div>
 
         <div style={{ marginBottom: '0.5rem' }}>
-          <strong>Steps</strong> (step no, target e.g. S20, D16)
+          <strong>Steps</strong> — step no, target (e.g. S20, D16, or 41/51/61 for checkout), routine type SS/SD/ST/C (suggested from target).
         </div>
         <table style={{ borderCollapse: 'collapse', width: '100%', marginBottom: '0.75rem' }}>
           <thead>
             <tr>
               <th style={{ border: '1px solid #ccc', padding: '0.35rem', textAlign: 'left' }}>No</th>
               <th style={{ border: '1px solid #ccc', padding: '0.35rem', textAlign: 'left' }}>Target</th>
+              <th style={{ border: '1px solid #ccc', padding: '0.35rem', textAlign: 'left' }}>Routine type</th>
               <th style={{ border: '1px solid #ccc', padding: '0.35rem' }}></th>
             </tr>
           </thead>
@@ -161,9 +182,22 @@ export function AdminRoutineEditPage() {
                     value={row.target}
                     onChange={(e) => updateStep(i, 'target', e.target.value)}
                     disabled={submitting}
-                    placeholder="e.g. S20, D16"
+                    placeholder="e.g. S20, D16, or 41 for checkout"
                     style={{ width: '8rem' }}
                   />
+                </td>
+                <td style={{ border: '1px solid #ccc', padding: '0.25rem' }}>
+                  <select
+                    value={row.routine_type ?? 'SS'}
+                    onChange={(e) => updateStep(i, 'routine_type', e.target.value as RoutineType)}
+                    disabled={submitting}
+                    aria-label="Routine type"
+                    style={{ padding: '0.25rem', minWidth: '4rem' }}
+                  >
+                    {ROUTINE_TYPES.map((rt) => (
+                      <option key={rt} value={rt}>{rt}</option>
+                    ))}
+                  </select>
                 </td>
                 <td style={{ border: '1px solid #ccc', padding: '0.25rem' }}>
                   <button

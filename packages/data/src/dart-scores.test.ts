@@ -61,6 +61,14 @@ describe('insertDartScore', () => {
       insertDartScore(client, { ...samplePayload, result: 'X' as 'H' })
     ).rejects.toMatchObject({ code: 'VALIDATION' });
   });
+
+  it('accepts optional attempt_index for checkout steps', async () => {
+    const payloadWithAttempt = { ...samplePayload, attempt_index: 1 };
+    const rowWithAttempt = { ...sampleRow, attempt_index: 1 };
+    const client = createMockClient([{ data: rowWithAttempt, error: null }]);
+    const result = await insertDartScore(client, payloadWithAttempt);
+    expect(result.attempt_index).toBe(1);
+  });
 });
 
 describe('insertDartScores', () => {

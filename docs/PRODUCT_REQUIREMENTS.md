@@ -3,7 +3,7 @@
 **Document Type:** Product Requirements  
 **Project:** OPP Darts Training Platform  
 **Audience:** Delivery team, Cursor, stakeholders  
-**Status:** v1.0  
+**Status:** v1.1  
 **Authority:** This document is mandatory reading before planning or feature work. It overrides generic guidance when explicitly required (see `.cursorrules`).
 
 ---
@@ -116,7 +116,7 @@ Future: **Competition organiser**, **Coach**, **Professional face** (content and
 ### 6.1 Identity and players
 
 - **FR-1.1** Users can register and sign in (Supabase Auth). Player record created/linked on first profile completion.
-- **FR-1.2** Player profile: nickname (used as display name), full name (optional), email, gender, age range, date joined. Editable by player (within constraints) or admin.
+- **FR-1.2** Player profile: nickname (used as display name), full name (optional), email, gender, age range, date joined. Editable by player (within constraints) or admin. Players can manage their own **checkout preferences** (variations per total) via profile → Checkout preferences; stored in `player_checkout_variations`, full CRUD on own rows only.
 - **FR-1.3** Player has Baseline Rating (BR), Training Rating (TR), Match Rating (MR), Player Rating (PR). Stored and updated per rating engine specs.
 - **FR-1.4** RLS: players can read/update own profile; admins can view all; no PII leakage across players.
 
@@ -192,7 +192,7 @@ Future: **Competition organiser**, **Coach**, **Professional face** (content and
 ### 6.12 Admin Portal
 
 - **FR-12.1** **View:** Player profiles (no edit of ratings by default; support for corrections if needed).
-- **FR-12.2** **CRUD:** Calendars, schedules, sessions, routines, level requirements, cohorts, cohort members, competitions.
+- **FR-12.2** **CRUD:** Calendars, schedules, sessions, routines, level requirements, cohorts, cohort members, competitions. **Reference data CRUD (admin):** checkout combinations (edit dart1/dart2/dart3 per total), level averages (level bands with 3-dart average and accuracy %).
 - **FR-12.3** **View:** Cohort performance data, cohort session data, competition data. No raw DB access; all via admin UI and data-access layer.
 
 ### 6.13 Notifications and orchestration (GO)
@@ -263,5 +263,6 @@ Phases P1–P3 can be partially parallelised (e.g. content model and cohort/cale
 ## 10. Document history and maintenance
 
 - **v1.0** — Initial PRD derived from OPP Product Brief, OPP Platform, Training Rating Spec v2, Match Rating Spec, Cohort example.
+- **v1.1** — FR-1.2: player checkout preferences (profile → Checkout preferences, `player_checkout_variations`). FR-12.2: reference data CRUD for checkout combinations and level averages (admin). See PROJECT_STATUS_TRACKER and P8_FEATURES §8.
 - This document should be updated when product scope or priorities change. Cursor may propose updates; governance docs (e.g. .cursorrules) must not be overwritten without explicit instruction.
 - **PROJECT_STATUS_TRACKER.md** and (when created) **DELIVERY_TASK_MAP.md** will reference this PRD and track progress against the phases and requirements above.

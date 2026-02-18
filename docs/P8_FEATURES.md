@@ -93,3 +93,32 @@ These capabilities were added after P8 delivery. They align with RSD Admin Porta
 
 - **Admin layout** (`/admin` sidebar): The OPP logo in the sidebar is **larger (80×80)** and **centrally aligned** in the column.
 - **Migration:** `supabase/migrations/20260226120000_set_all_players_highest_tier.sql` sets all `players.tier` to `'platinum'`. For dev/demo or one-off promotion; run via normal migration flow (e.g. `supabase db push`).
+
+---
+
+## 8. Reference data and profile enhancements (post-P8)
+
+These capabilities extend admin reference-data management and player profile with checkout preferences and level-averages CRUD.
+
+### 8.1 Admin checkout combinations
+
+- **Screen:** `/admin/checkout-combinations` — displays the full `checkout_combinations` table (total 2–170, dart1, dart2, dart3). Table is **editable**: each row has inline inputs for dart1/dart2/dart3 and a per-row **Save** button.
+- **RLS:** Existing SELECT for authenticated users; admin UPDATE and INSERT added in `supabase/migrations/20260228140000_checkout_combinations_admin_update.sql`.
+- **Data layer:** `listCheckoutCombinations(client)`, `updateCheckoutCombination(client, id, payload)` in `@opp/data` (checkout-combinations). Admin-only for update; list callable by authenticated users for reference lookup.
+- **Nav:** “Checkout combinations” in the admin sidebar (under Competitions).
+
+### 8.2 Player checkout variations (profile)
+
+- **Table:** `player_checkout_variations` — one row per (player_id, total) with dart1, dart2, dart3 (nullable text). Used for **player-specific overrides or additions** to the default checkout combinations. Empty by default.
+- **RLS:** Players have full CRUD only on their own rows (`player_id = current_user_player_id()`). No admin policies (table is player-scoped).
+- **Profile entry:** On the profile screen (`/profile`), a link **“Checkout preferences”** (with “Edit profile”) goes to `/profile/checkout-variations`.
+- **Screen:** `/profile/checkout-variations` — table matching checkout combinations layout plus a **Player** column (shows current user’s nickname). Empty state message when no variations. **Add variation** form (total 2–170, dart1/dart2/dart3) and **Add** button; each row has inline edit and **Save** / **Delete** (with confirmation). Full CRUD via `@opp/data`: `listPlayerCheckoutVariations`, `createPlayerCheckoutVariation`, `updatePlayerCheckoutVariation`, `deletePlayerCheckoutVariation`.
+- **Migration:** `supabase/migrations/20260229140000_create_player_checkout_variations.sql` (table, indexes, RLS).
+
+### 8.3 Admin level averages
+
+- **Screen:** `/admin/level-averages` — list of all `level_averages` rows (level_min, level_max, description, three_dart_avg, single_acc_pct, double_acc_pct, treble_acc_pct, bull_acc_pct). **New level average** link → `/admin/level-averages/new`; **Edit** per row → `/admin/level-averages/:id`; **Delete** with confirmation.
+- **RLS:** Existing SELECT for authenticated users; admin INSERT, UPDATE, DELETE added in `supabase/migrations/20260229150000_level_averages_admin_crud.sql`.
+- **Data layer:** `listLevelAverages(client)`, `getLevelAverageById(client, id)`, `createLevelAverage(client, payload)`, `updateLevelAverage(client, id, payload)`, `deleteLevelAverage(client, id)` in `@opp/data` (level-averages). All write operations require admin (requireAdmin in data layer).
+- **Nav:** “Level averages” in the admin sidebar (between Level requirements and Competitions).
+- **Table:** `level_averages` (level_min, level_max, description, three_dart_avg, optional accuracy % columns) as created and populated by existing migrations (e.g. `20260229120000_create_opp_3_dart_average.sql`, `20260229130000_populate_opp_3_dart_average.sql`).

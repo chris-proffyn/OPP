@@ -7,12 +7,19 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   applyTrainingRatingProgression,
+  checkoutRoutineScore,
   completeITAAndSetBR,
   completeSessionRun,
+  createPlayerStepRun,
   createSessionRun,
+  getCurrentCohortForPlayer,
+  getExpectedCheckoutSuccesses,
+  getExpectedHitsForSingleDartRoutine,
   getAllSessionsForPlayer,
   getCalendarEntryById,
   getLevelRequirementByMinLevel,
+  getLevelRequirementByMinLevelAndRoutineType,
+  getPlayerStepRunByTrainingRoutineStep,
   getRoutineWithSteps,
   getSessionRunByPlayerAndCalendar,
   getSessionWithRoutines,
@@ -22,7 +29,9 @@ import {
   roundScore,
   routineScore,
   sessionScore,
+  stepScore,
   updatePlayerCalendarStatus,
+  updatePlayerStepRun,
   upsertPlayerRoutineScore,
 } from '@opp/data';
 import type {
@@ -31,7 +40,7 @@ import type {
   RoutineStep,
 } from '@opp/data';
 import { useSupabase } from '../context/SupabaseContext';
-import { isHitForTarget, SEGMENT_MISS } from '../constants/segments';
+import { isHitForTarget, segmentToScore, SEGMENT_MISS } from '../constants/segments';
 import { SegmentGrid } from '../components/SegmentGrid';
 import { isITASession } from '../utils/ita';
 import { useVoiceRecognition } from '../hooks/useVoiceRecognition';
@@ -87,6 +96,10 @@ function levelToDecade(level: number | null): number {
   return Math.floor(Number(level) / 10) * 10;
 }
 
+function hasAnyCheckoutStep(routinesWithSteps: RoutineWithSteps[]): boolean {
+  return routinesWithSteps.some((r) => r.steps.some((s) => s.routine_type === 'C'));
+}
+
 export function PlaySessionPage() {
   const { calendarId } = useParams<{ calendarId: string }>();
   const navigate = useNavigate();
@@ -94,6 +107,13 @@ export function PlaySessionPage() {
   const [gameState, setGameState] = useState<GameState>({ phase: 'loading' });
   const voice = useVoiceRecognition();
   const [voiceFeedback, setVoiceFeedback] = useState<'hit' | 'miss' | 'segment' | 'no-match' | null>(null);
+  /** Per-step expected hits from level_averages + routine_type (display on routine screen). */
+  const [expectedHitsForStep, setExpectedHitsForStep] = useState<number | null>(null);
+  /** For checkout (C) steps: expected_successes_int and attempt_count for "Expected X of Y" display. */
+  const [expectedCheckoutForStep, setExpectedCheckoutForStep] = useState<{
+    expected_successes_int: number;
+    attempt_count: number;
+  } | null>(null);
 
   // Load: validate calendar, load calendar entry, session+routines, each routine+steps, level req, existing run
   useEffect(() => {
@@ -162,11 +182,121 @@ export function PlaySessionPage() {
     };
   }, [calendarId, player, supabase]);
 
+  // Fetch expected hits (or expected checkout) for current step when in running phase.
+  useEffect(() => {
+    if (gameState.phase !== 'running' || !player || !supabase) {
+      setExpectedHitsForStep(null);
+      setExpectedCheckoutForStep(null);
+      return;
+    }
+    const routine = gameState.routinesWithSteps[gameState.routineIndex];
+    const step = routine?.steps[gameState.stepIndex];
+    const N = gameState.levelReq?.darts_allowed ?? 3;
+    if (!step) {
+      setExpectedHitsForStep(null);
+      setExpectedCheckoutForStep(null);
+      return;
+    }
+    if (step.routine_type === 'C') {
+      setExpectedHitsForStep(null);
+      let cancelled = false;
+      const trainingId = gameState.trainingId;
+      Promise.all([
+        getPlayerStepRunByTrainingRoutineStep(
+          supabase,
+          trainingId,
+          routine!.routine.id,
+          step.step_no
+        ),
+        getLevelRequirementByMinLevelAndRoutineType(
+          supabase,
+          levelToDecade(player.training_rating ?? player.baseline_rating ?? null),
+          'C'
+        ),
+      ]).then(([stepRun, lrC]) => {
+        if (cancelled) return;
+        if (stepRun && lrC)
+          setExpectedCheckoutForStep({
+            expected_successes_int: stepRun.expected_successes_int,
+            attempt_count: lrC.attempt_count ?? 9,
+          });
+        else
+          setExpectedCheckoutForStep({
+            expected_successes_int: 0,
+            attempt_count: lrC?.attempt_count ?? 9,
+          });
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+    setExpectedCheckoutForStep(null);
+    let cancelled = false;
+    const playerLevel = player.training_rating ?? player.baseline_rating ?? 0;
+    getExpectedHitsForSingleDartRoutine(supabase, playerLevel, step.routine_type, N).then((v) => {
+      if (!cancelled) setExpectedHitsForStep(v ?? null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    gameState.phase,
+    gameState.routineIndex,
+    gameState.stepIndex,
+    gameState.routinesWithSteps,
+    gameState.levelReq,
+    gameState.trainingId,
+    player,
+    supabase,
+  ]);
+
   const handleStartOrResume = useCallback(async () => {
     if (gameState.phase !== 'ready' || !player || !calendarId) return;
+    const { calendarEntry, sessionName, routinesWithSteps, levelReq } = gameState;
+    const hasCheckout = hasAnyCheckoutStep(routinesWithSteps);
     try {
-      const run = await createSessionRun(supabase, player.id, calendarId);
-      const { calendarEntry, sessionName, routinesWithSteps, levelReq } = gameState;
+      let playerLevel: number | undefined;
+      if (hasCheckout) {
+        const cohort = await getCurrentCohortForPlayer(supabase, player.id);
+        playerLevel =
+          cohort?.level ?? player.training_rating ?? player.baseline_rating ?? 0;
+      }
+      const run = await createSessionRun(supabase, player.id, calendarId, {
+        ...(hasCheckout && playerLevel !== undefined && { player_level_snapshot: playerLevel }),
+      });
+      if (hasCheckout && playerLevel !== undefined) {
+        for (let rIdx = 0; rIdx < routinesWithSteps.length; rIdx++) {
+          const rws = routinesWithSteps[rIdx];
+          for (const step of rws.steps) {
+            if (step.routine_type !== 'C') continue;
+            const targetInt = parseInt(step.target, 10);
+            if (Number.isNaN(targetInt)) continue;
+            const existing = await getPlayerStepRunByTrainingRoutineStep(
+              supabase,
+              run.id,
+              rws.routine.id,
+              step.step_no
+            );
+            if (existing) continue;
+            const exp = await getExpectedCheckoutSuccesses(
+              supabase,
+              playerLevel,
+              targetInt
+            );
+            await createPlayerStepRun(supabase, {
+              player_id: player.id,
+              training_id: run.id,
+              routine_id: rws.routine.id,
+              routine_no: rIdx + 1,
+              step_no: step.step_no,
+              routine_step_id: step.id,
+              checkout_target: targetInt,
+              expected_successes: exp.expected_successes,
+              expected_successes_int: exp.expected_successes_int,
+            });
+          }
+        }
+      }
       setGameState({
         phase: 'running',
         trainingId: run.id,
@@ -256,36 +386,109 @@ export function PlaySessionPage() {
     if (!step) return;
     const N = levelReq?.darts_allowed ?? 3;
     if (visitSelections.length !== N) return;
+    const isCheckoutStep = step.routine_type === 'C';
     try {
-      for (let i = 0; i < N; i++) {
-        const actual = visitSelections[i] ?? 'M';
-        const result = isHitForTarget(actual, step.target) ? 'H' : 'M';
-        await insertDartScore(supabase, {
-          player_id: player.id,
-          training_id: trainingId,
-          routine_id: routine.routine.id,
-          routine_no: routineIndex + 1,
-          step_no: step.step_no,
-          dart_no: i + 1,
-          target: step.target,
-          actual,
-          result,
-        });
+      if (isCheckoutStep) {
+        const targetInt = parseInt(step.target, 10);
+        let remaining = Number.isNaN(targetInt) ? 0 : targetInt;
+        let checkoutDartIndex: number | null = null;
+        for (let i = 0; i < N; i++) {
+          const actual = visitSelections[i] ?? 'M';
+          const pts = segmentToScore(actual);
+          remaining -= pts;
+          if (remaining === 0) {
+            checkoutDartIndex = i;
+            break;
+          }
+        }
+        for (let i = 0; i < N; i++) {
+          const actual = visitSelections[i] ?? 'M';
+          const result = i === checkoutDartIndex ? 'H' : 'M';
+          await insertDartScore(supabase, {
+            player_id: player.id,
+            training_id: trainingId,
+            routine_id: routine.routine.id,
+            routine_no: routineIndex + 1,
+            step_no: step.step_no,
+            dart_no: i + 1,
+            attempt_index: 1,
+            target: step.target,
+            actual,
+            result,
+          });
+        }
+        const stepRun = await getPlayerStepRunByTrainingRoutineStep(
+          supabase,
+          trainingId,
+          routine.routine.id,
+          step.step_no
+        );
+        if (stepRun) {
+          const actual_successes = checkoutDartIndex !== null ? 1 : 0;
+          const sc = stepScore(stepRun.expected_successes_int, actual_successes);
+          await updatePlayerStepRun(supabase, stepRun.id, {
+            actual_successes,
+            step_score: sc,
+            completed_at: new Date().toISOString(),
+          });
+        }
+      } else {
+        for (let i = 0; i < N; i++) {
+          const actual = visitSelections[i] ?? 'M';
+          const result = isHitForTarget(actual, step.target) ? 'H' : 'M';
+          await insertDartScore(supabase, {
+            player_id: player.id,
+            training_id: trainingId,
+            routine_id: routine.routine.id,
+            routine_no: routineIndex + 1,
+            step_no: step.step_no,
+            dart_no: i + 1,
+            target: step.target,
+            actual,
+            result,
+          });
+        }
       }
     } catch (e) {
       alert(isDataError(e) ? (e as Error).message : 'Failed to save darts.');
       return;
     }
     const hits = visitSelections.filter((a) => isHitForTarget(a, step.target)).length;
-    const targetHits = levelReq?.tgt_hits ?? Math.min(1, N);
-    const roundSc = roundScore(hits, targetHits);
-    const allRoundScores = [...gameState.allRoundScores, roundSc];
+    const playerLevel = player.training_rating ?? player.baseline_rating ?? 0;
+    const expectedFromLevel = await getExpectedHitsForSingleDartRoutine(
+      supabase,
+      playerLevel,
+      step.routine_type,
+      N
+    );
+    const expectedHits = expectedFromLevel ?? levelReq?.tgt_hits ?? Math.min(1, N);
+    const roundSc = roundScore(hits, expectedHits);
+    const allRoundScores = isCheckoutStep
+      ? gameState.allRoundScores
+      : [...gameState.allRoundScores, roundSc];
     let nextRoutineIndex = gameState.routineIndex;
     let nextStepIndex = stepIndex + 1;
     let routineScores = gameState.routineScores;
     if (nextStepIndex >= routine.steps.length) {
-      const thisRoutineRounds = allRoundScores.slice(-routine.steps.length);
-      const rScore = routineScore(thisRoutineRounds);
+      const nonCCount = routine.steps.filter((s) => s.routine_type !== 'C').length;
+      const startIdx = allRoundScores.length - nonCCount;
+      const stepScores: number[] = [];
+      let roundIdx = 0;
+      for (const s of routine.steps) {
+        if (s.routine_type === 'C') {
+          const run = await getPlayerStepRunByTrainingRoutineStep(
+            supabase,
+            trainingId,
+            routine.routine.id,
+            s.step_no
+          );
+          stepScores.push(run?.step_score ?? 0);
+        } else {
+          stepScores.push(allRoundScores[startIdx + roundIdx] ?? 0);
+          roundIdx += 1;
+        }
+      }
+      const rScore = checkoutRoutineScore(stepScores);
       routineScores = [...gameState.routineScores, rScore];
       try {
         await upsertPlayerRoutineScore(supabase, {
@@ -300,7 +503,7 @@ export function PlaySessionPage() {
       nextRoutineIndex = gameState.routineIndex + 1;
       nextStepIndex = 0;
       if (nextRoutineIndex >= routinesWithSteps.length) {
-        const finalSc = sessionScore(allRoundScores);
+        const finalSc = sessionScore(routineScores);
         try {
           await completeSessionRun(supabase, trainingId, finalSc);
           const pcList = await listPlayerCalendar(supabase, player.id);
@@ -391,8 +594,8 @@ export function PlaySessionPage() {
               {player?.training_rating != null && ` (${player.training_rating})`}
             </p>
             <p>
-              <span style={labelStyle}>Expected:</span>
-              {levelReq.tgt_hits}/{levelReq.darts_allowed}
+              <span style={labelStyle}>Darts per visit:</span>
+              {levelReq.darts_allowed}
             </p>
           </section>
         )}
@@ -432,7 +635,7 @@ export function PlaySessionPage() {
     if (!step) return null;
     const N = levelReq?.darts_allowed ?? 3;
     const runningSessionSc =
-      allRoundScores.length > 0 ? sessionScore(allRoundScores) : 0;
+      routineScores.length > 0 ? sessionScore(routineScores) : 0;
     const visitComplete = visitSelections.length === N;
 
     return (
@@ -457,16 +660,38 @@ export function PlaySessionPage() {
             <span style={labelStyle}>Session score (so far):</span>
             {runningSessionSc.toFixed(1)}%
           </p>
+          {step.routine_type === 'C' && (
+            <p>
+              <span style={labelStyle}>Checkout from:</span> {step.target}
+              {expectedCheckoutForStep && (
+                <>
+                  {' '}
+                  <span style={labelStyle}>Expected:</span>{' '}
+                  {Math.min(expectedCheckoutForStep.expected_successes_int, expectedCheckoutForStep.attempt_count)} out of{' '}
+                  {expectedCheckoutForStep.attempt_count} attempts
+                </>
+              )}
+            </p>
+          )}
+          {levelReq && step.routine_type !== 'C' && (
+            <p>
+              <span style={labelStyle}>Expected (this step):</span>
+              {expectedHitsForStep != null
+                ? `${expectedHitsForStep} hits from ${N} darts`
+                : levelReq.tgt_hits != null
+                  ? `${levelReq.tgt_hits} hits from ${N} darts`
+                  : `${N} darts`}
+            </p>
+          )}
         </section>
-        {levelReq && (
-          <p>
-            Expected: {levelReq.tgt_hits}/{levelReq.darts_allowed} — Your level: {levelToDecade(player?.training_rating ?? player?.baseline_rating ?? null)}
-          </p>
-        )}
         <section style={sectionStyle}>
           <h2>{routine.routine.name}</h2>
           <p>
-            Aim at <strong>{step.target}</strong>. Say &lsquo;hit&rsquo; or &lsquo;miss&rsquo;, or tap below:
+            {step.routine_type === 'C' ? (
+              <>Checkout from <strong>{step.target}</strong>. Record each dart (segment or miss).</>
+            ) : (
+              <>Aim at <strong>{step.target}</strong>. Say &lsquo;hit&rsquo; or &lsquo;miss&rsquo;, or tap below:</>
+            )}
           </p>
           {voice.isSupported && (
             <p style={{ marginBottom: '0.5rem' }}>

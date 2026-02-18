@@ -26,7 +26,13 @@ export function createMockClient(responses: Response[]): SupabaseClient {
       if (cols === '*' || (Array.isArray(cols) && cols.length > 0)) {
         return {
           limit: () => ({ maybeSingle: () => thenable() }),
+          lte: () => ({ gte: () => ({ limit: () => ({ maybeSingle: () => thenable() }) }) }),
           eq: () => ({
+            eq: () => ({
+              eq: () => ({ maybeSingle: () => thenable() }),
+              maybeSingle: () => thenable(),
+            }),
+            limit: () => ({ maybeSingle: () => thenable() }),
             maybeSingle: () => thenable(),
             order: () => ({
               then(resolve: (r: Response) => void, reject?: (e: unknown) => void) {

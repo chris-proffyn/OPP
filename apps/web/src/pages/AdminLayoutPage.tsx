@@ -62,7 +62,9 @@ export function AdminLayoutPage() {
         <Link to="/admin/sessions" style={navLinkStyle}>Sessions</Link>
         <Link to="/admin/routines" style={navLinkStyle}>Routines</Link>
         <Link to="/admin/level-requirements" style={navLinkStyle}>Level requirements</Link>
+        <Link to="/admin/level-averages" style={navLinkStyle}>Level averages</Link>
         <Link to="/admin/competitions" style={navLinkStyle}>Competitions</Link>
+        <Link to="/admin/checkout-combinations" style={navLinkStyle}>Checkout combinations</Link>
         <span style={{ marginTop: 'auto', paddingTop: '1rem' }}>
           <Link to="/home" style={navLinkStyle}>App</Link>
         </span>

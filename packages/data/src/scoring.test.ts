@@ -3,7 +3,7 @@
  * P5: levelChangeFromSessionScore per TR spec §8.
  */
 
-import { levelChangeFromSessionScore, roundScore, routineScore, sessionScore } from './scoring';
+import { levelChangeFromSessionScore, roundScore, routineScore, sessionScore, stepScore, checkoutRoutineScore } from './scoring';
 
 describe('roundScore', () => {
   it('returns (hits / targetHits) × 100', () => {
@@ -58,6 +58,46 @@ describe('sessionScore', () => {
   it('matches routineScore when same inputs', () => {
     const scores = [50, 100, 75];
     expect(sessionScore(scores)).toBe(routineScore(scores));
+  });
+});
+
+describe('stepScore', () => {
+  it('returns (actual / expected_int) * 100, capped at 200', () => {
+    expect(stepScore(5, 5)).toBe(100);
+    expect(stepScore(4, 2)).toBe(50);
+    expect(stepScore(4, 6)).toBe(150);
+  });
+
+  it('when expected_successes_int === 0: actual 0 → 100, actual > 0 → 200', () => {
+    expect(stepScore(0, 0)).toBe(100);
+    expect(stepScore(0, 1)).toBe(200);
+  });
+
+  it('caps at 200', () => {
+    expect(stepScore(2, 5)).toBe(200);
+    expect(stepScore(1, 3)).toBe(200);
+  });
+});
+
+describe('checkoutRoutineScore', () => {
+  it('returns average of step scores, capped at 200', () => {
+    expect(checkoutRoutineScore([100, 50, 150])).toBe(100);
+    expect(checkoutRoutineScore([200, 200])).toBe(200);
+    expect(checkoutRoutineScore([250, 150])).toBe(200);
+  });
+
+  it('returns 0 for empty array', () => {
+    expect(checkoutRoutineScore([])).toBe(0);
+  });
+
+  it('AC5/AC6/AC7: step scores 41→100, 51→50, 61→150 → routine 100, session 100', () => {
+    expect(stepScore(5, 5)).toBe(100);
+    expect(stepScore(4, 2)).toBe(50);
+    expect(stepScore(4, 6)).toBe(150);
+    const stepScores = [100, 50, 150];
+    const routineScore = checkoutRoutineScore(stepScores);
+    expect(routineScore).toBe(100);
+    expect(sessionScore([routineScore])).toBe(100);
   });
 });
 

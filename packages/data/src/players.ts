@@ -40,12 +40,19 @@ function mapSupabaseError(err: unknown): never {
 
 /**
  * Get the current user's player row, or null if none (e.g. before onboarding).
- * RLS restricts to own row. Select * includes P6 tier and avatar_url; app should treat missing tier as 'free'.
+ * Explicitly filters by auth user id so admins (who can SELECT any row via RLS) always get their own row.
  */
 export async function getCurrentPlayer(client: SupabaseClient): Promise<Player | null> {
+  const {
+    data: { user },
+    error: authError,
+  } = await client.auth.getUser();
+  if (authError || !user) return null;
+
   const { data, error } = await client
     .from(PLAYERS_TABLE)
     .select('*')
+    .eq('user_id', user.id)
     .limit(1)
     .maybeSingle();
 

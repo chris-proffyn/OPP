@@ -6,6 +6,9 @@ import { PlayerGuard } from './components/PlayerGuard';
 import { SupabaseProvider } from './context/SupabaseContext';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { AdminLayoutPage } from './pages/AdminLayoutPage';
+import { AdminLevelAverageEditPage } from './pages/AdminLevelAverageEditPage';
+import { AdminLevelAverageNewPage } from './pages/AdminLevelAverageNewPage';
+import { AdminLevelAveragesPage } from './pages/AdminLevelAveragesPage';
 import { AdminLevelRequirementEditPage } from './pages/AdminLevelRequirementEditPage';
 import { AdminLevelRequirementNewPage } from './pages/AdminLevelRequirementNewPage';
 import { AdminLevelRequirementsPage } from './pages/AdminLevelRequirementsPage';
@@ -24,6 +27,7 @@ import { AdminCompetitionDetailPage } from './pages/AdminCompetitionDetailPage';
 import { AdminCompetitionReportPage } from './pages/AdminCompetitionReportPage';
 import { AdminCompetitionEditPage } from './pages/AdminCompetitionEditPage';
 import { AdminCompetitionNewPage } from './pages/AdminCompetitionNewPage';
+import { AdminCheckoutCombinationsPage } from './pages/AdminCheckoutCombinationsPage';
 import { AdminCompetitionsPage } from './pages/AdminCompetitionsPage';
 import { AdminCohortNewPage } from './pages/AdminCohortNewPage';
 import { AdminCohortsPage } from './pages/AdminCohortsPage';
@@ -41,6 +45,7 @@ import { OnboardingPage } from './pages/OnboardingPage';
 import { PlayLandingPage } from './pages/PlayLandingPage';
 import { PlaySessionPage } from './pages/PlaySessionPage';
 import { RecordMatchPage } from './pages/RecordMatchPage';
+import { ProfileCheckoutVariationsPage } from './pages/ProfileCheckoutVariationsPage';
 import { ProfileEditPage } from './pages/ProfileEditPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
@@ -70,6 +75,7 @@ export default function App() {
               <Route path="home" element={<HomePage />} />
               <Route path="profile" element={<ProfilePage />} />
               <Route path="profile/edit" element={<ProfileEditPage />} />
+              <Route path="profile/checkout-variations" element={<ProfileCheckoutVariationsPage />} />
               <Route path="play" element={<PlayLandingPage />} />
               <Route path="play/record-match" element={<RecordMatchPage />} />
               <Route path="play/session/:calendarId" element={<PlaySessionPage />} />
@@ -112,11 +118,15 @@ export default function App() {
             <Route path="level-requirements" element={<AdminLevelRequirementsPage />} />
             <Route path="level-requirements/new" element={<AdminLevelRequirementNewPage />} />
             <Route path="level-requirements/:id" element={<AdminLevelRequirementEditPage />} />
+            <Route path="level-averages" element={<AdminLevelAveragesPage />} />
+            <Route path="level-averages/new" element={<AdminLevelAverageNewPage />} />
+            <Route path="level-averages/:id" element={<AdminLevelAverageEditPage />} />
             <Route path="competitions" element={<AdminCompetitionsPage />} />
             <Route path="competitions/new" element={<AdminCompetitionNewPage />} />
             <Route path="competitions/:id" element={<AdminCompetitionDetailPage />} />
             <Route path="competitions/:id/edit" element={<AdminCompetitionEditPage />} />
             <Route path="competitions/:id/report" element={<AdminCompetitionReportPage />} />
+            <Route path="checkout-combinations" element={<AdminCheckoutCombinationsPage />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

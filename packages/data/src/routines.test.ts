@@ -31,6 +31,7 @@ const sampleStep: RoutineStep = {
   routine_id: 'rout-1',
   step_no: 1,
   target: 'S20',
+  routine_type: 'SS',
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
 };
@@ -68,6 +69,7 @@ describe('getRoutineById', () => {
     expect(result!.routine.name).toBe('Singles');
     expect(result!.steps).toHaveLength(1);
     expect(result!.steps[0].target).toBe('S20');
+    expect(result!.steps[0].routine_type).toBe('SS');
   });
 
   it('returns null when routine not found', async () => {
@@ -145,5 +147,20 @@ describe('setRoutineSteps', () => {
       { step_no: 1, target: 'S20' },
     ]);
     expect(Array.isArray(result)).toBe(true);
+  });
+
+  it('accepts steps with routine_type (SS, SD, ST, C)', async () => {
+    const stepSD = { ...sampleStep, routine_type: 'SD' as const, target: 'D16' };
+    const client = createMockClient([
+      adminResponse(),
+      { data: null, error: null },
+      { data: [stepSD], error: null },
+    ]);
+    const result = await setRoutineSteps(client, 'rout-1', [
+      { step_no: 1, target: 'D16', routine_type: 'SD' },
+    ]);
+    expect(Array.isArray(result)).toBe(true);
+    expect(result).toHaveLength(1);
+    expect(result[0].routine_type).toBe('SD');
   });
 });

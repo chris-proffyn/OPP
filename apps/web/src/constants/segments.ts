@@ -52,3 +52,21 @@ export function normaliseSegment(segment: string): string {
 export function isHitForTarget(actual: string, stepTarget: string): boolean {
   return normaliseSegment(actual) === normaliseSegment(stepTarget);
 }
+
+/**
+ * Points value of a segment for checkout remaining calculation.
+ * S1→1..S20→20, D1→2..D20→40, T1→3..T20→60, 25→25, Bull→50, M→0.
+ */
+export function segmentToScore(segment: string): number {
+  if (!segment || segment === SEGMENT_MISS) return 0;
+  const s = segment.trim();
+  if (s === '25') return 25;
+  if (s === 'Bull' || s.toLowerCase() === 'bullseye') return 50;
+  const singleMatch = s.match(/^s(\d{1,2})$/i);
+  if (singleMatch?.[1]) return Math.min(20, Math.max(1, parseInt(singleMatch[1], 10)));
+  const doubleMatch = s.match(/^d(\d{1,2})$/i);
+  if (doubleMatch?.[1]) return Math.min(40, Math.max(2, parseInt(doubleMatch[1], 10) * 2));
+  const trebleMatch = s.match(/^t(\d{1,2})$/i);
+  if (trebleMatch?.[1]) return Math.min(60, Math.max(3, parseInt(trebleMatch[1], 10) * 3));
+  return 0;
+}

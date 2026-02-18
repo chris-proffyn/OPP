@@ -10,8 +10,10 @@ import type {
   Routine,
   RoutineStep,
   RoutineStepInput,
+  RoutineType,
   UpdateRoutinePayload,
 } from './types';
+import { isRoutineType } from './types';
 
 const ROUTINES_TABLE = 'routines';
 const ROUTINE_STEPS_TABLE = 'routine_steps';
@@ -224,10 +226,17 @@ export async function setRoutineSteps(
 
   if (steps.length === 0) return [];
 
+  const routineType = (s: RoutineStepInput): RoutineType => {
+    const t = s.routine_type ?? 'SS';
+    if (!isRoutineType(t)) return 'SS';
+    return t;
+  };
+
   const rows = steps.map((s) => ({
     routine_id: routineId,
     step_no: s.step_no,
     target: s.target,
+    routine_type: routineType(s),
   }));
   const { data: inserted, error: insError } = await client
     .from(ROUTINE_STEPS_TABLE)

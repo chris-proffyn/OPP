@@ -29,6 +29,7 @@ export type {
   SessionRoutine,
   Routine,
   RoutineStep,
+  RoutineType,
   LevelRequirement,
   CreateSchedulePayload,
   UpdateSchedulePayload,
@@ -38,6 +39,14 @@ export type {
   UpdateRoutinePayload,
   CreateLevelRequirementPayload,
   UpdateLevelRequirementPayload,
+  CheckoutCombination,
+  UpdateCheckoutCombinationPayload,
+  PlayerCheckoutVariation,
+  CreatePlayerCheckoutVariationPayload,
+  UpdatePlayerCheckoutVariationPayload,
+  LevelAverage,
+  CreateLevelAveragePayload,
+  UpdateLevelAveragePayload,
   ScheduleEntryInput,
   SessionRoutineInput,
   RoutineStepInput,
@@ -61,6 +70,11 @@ export type {
   PlayerRoutineScore,
   DartScorePayload,
   PlayerRoutineScorePayload,
+  PlayerStepRun,
+  CreatePlayerStepRunPayload,
+  UpdatePlayerStepRunPayload,
+  PlayerAttemptResult,
+  CreatePlayerAttemptResultPayload,
   RecentSessionScore,
   SessionHistoryEntry,
   SessionHistoryRoutineScore,
@@ -80,6 +94,7 @@ export type {
   CompetitionReportMatchRow,
   CompetitionReportSummaryRow,
 } from './types';
+export { isRoutineType, ROUTINE_TYPES } from './types';
 export { DataError, isDataError } from './errors';
 export {
   getCurrentPlayer,
@@ -123,10 +138,35 @@ export {
 export {
   listLevelRequirements,
   getLevelRequirementByMinLevel,
+  getLevelRequirementByMinLevelAndRoutineType,
   createLevelRequirement,
   updateLevelRequirement,
   deleteLevelRequirement,
 } from './level-requirements';
+export {
+  listCheckoutCombinations,
+  updateCheckoutCombination,
+} from './checkout-combinations';
+export {
+  listLevelAverages,
+  getLevelAverageById,
+  getLevelAverageForLevel,
+  getExpectedHitsForSingleDartRoutine,
+  createLevelAverage,
+  updateLevelAverage,
+  deleteLevelAverage,
+} from './level-averages';
+export {
+  computeExpectedCheckoutSuccesses,
+  getExpectedCheckoutSuccesses,
+} from './checkout-expectation';
+export type { ExpectedCheckoutResult, LevelAverageForCheckout } from './checkout-expectation';
+export {
+  listPlayerCheckoutVariations,
+  createPlayerCheckoutVariation,
+  updatePlayerCheckoutVariation,
+  deletePlayerCheckoutVariation,
+} from './player-checkout-variations';
 export {
   listCohorts,
   getCohortById,
@@ -180,6 +220,17 @@ export {
   resetSessionForCalendar,
 } from './session-runs';
 export {
+  createPlayerStepRun,
+  updatePlayerStepRun,
+  listPlayerStepRunsByTrainingId,
+  getPlayerStepRunsForSessionRun,
+  getPlayerStepRunByTrainingRoutineStep,
+} from './player-step-runs';
+export {
+  insertPlayerAttemptResult,
+  listAttemptResultsForStepRun,
+} from './player-attempt-results';
+export {
   getRecentSessionScoresForPlayer,
   listCompletedSessionRunsForPlayer,
   getSessionHistoryForPlayer,
@@ -196,7 +247,7 @@ export {
   upsertPlayerRoutineScore,
 } from './player-routine-scores';
 export type { RoutineScoreForRun } from './player-routine-scores';
-export { levelChangeFromSessionScore, roundScore, routineScore, sessionScore } from './scoring';
+export { levelChangeFromSessionScore, roundScore, routineScore, sessionScore, stepScore, checkoutRoutineScore } from './scoring';
 export {
   computeCheckoutRating,
   computeDoublesRating,
