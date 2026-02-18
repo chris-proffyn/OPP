@@ -44,7 +44,7 @@ export function AuthenticatedLayout() {
     <div style={layoutStyle}>
       <nav style={navStyle} aria-label="Main">
         <Link to="/home" style={{ ...linkStyle, display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }} aria-label="OPP Home">
-          <OppLogo size={32} />
+          <OppLogo size={44} />
         </Link>
         <Link to="/home" style={linkStyle}>Home</Link>
         <Link to="/profile" style={linkStyle}>Profile</Link>
