@@ -61,7 +61,7 @@ export function AdminLevelRequirementsPage() {
     <div>
       <h1>Level requirements</h1>
       <p style={{ marginBottom: '0.5rem', color: '#666', fontSize: '0.9rem' }}>
-        One row per (min_level, routine_type). min_level is typically 0, 10, 20, …, 90. For C (checkout), attempt_count and allowed_throws_per_attempt apply.
+        One row per (min_level, routine_type). min_level is typically 0, 10, 20, …, 90. <strong>darts_allowed</strong> = darts per step (SS/SD/ST) or stored for C. For <strong>C (checkout)</strong>: <strong>allowed_throws_per_attempt</strong> = darts per attempt (e.g. 9), <strong>attempt_count</strong> = attempts per step (e.g. 3) — player gets up to attempt_count × allowed_throws_per_attempt darts to checkout.
       </p>
       <p style={{ marginBottom: '0.5rem' }}>
         <Link to="/admin/level-requirements/new">New level requirement</Link>

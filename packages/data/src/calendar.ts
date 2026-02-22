@@ -212,6 +212,31 @@ export async function updateCalendarEntry(
 }
 
 /**
+ * Get the global ITA calendar id (cohort name = 'ITA'). Used for get-or-create ITA entry (OPP_ITA_UPDATE).
+ * Returns null if migration has not created the ITA cohort/calendar. RLS: calendar_select_ita / cohorts_select_ita.
+ */
+export async function getGlobalITACalendarId(client: SupabaseClient): Promise<string | null> {
+  const { data: cohortRow, error: cohortError } = await client
+    .from(COHORTS_TABLE)
+    .select('id')
+    .eq('name', 'ITA')
+    .limit(1)
+    .maybeSingle();
+  if (cohortError) mapError(cohortError);
+  if (!cohortRow || !(cohortRow as { id: string }).id) return null;
+  const cohortId = (cohortRow as { id: string }).id;
+  const { data: calRow, error: calError } = await client
+    .from(CALENDAR_TABLE)
+    .select('id')
+    .eq('cohort_id', cohortId)
+    .limit(1)
+    .maybeSingle();
+  if (calError) mapError(calError);
+  if (!calRow || !(calRow as { id: string }).id) return null;
+  return (calRow as { id: string }).id;
+}
+
+/**
  * Get a single calendar entry by id, with session name, cohort name, and schedule name. Returns null if not found.
  * RLS: player can read if in cohort (calendar_select_member).
  */

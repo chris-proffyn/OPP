@@ -28,30 +28,36 @@ function formatDateTime(iso: string): string {
   return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 }
 
-/** P8 §6.1 — Darts list grouped by routine_no for View darts (Gold/Platinum). */
+/** P8 §6.1 — Darts table for View darts (Gold/Platinum). Sorted by routine_no, step_no, attempt_index, dart_no. */
 function DartsList({ darts }: { darts: DartScore[] }) {
-  const byRoutine = new Map<number, DartScore[]>();
-  for (const d of darts) {
-    const list = byRoutine.get(d.routine_no) ?? [];
-    list.push(d);
-    byRoutine.set(d.routine_no, list);
-  }
-  const routineNos = Array.from(byRoutine.keys()).sort((a, b) => a - b);
+  if (darts.length === 0) return <p>No dart data.</p>;
   return (
-    <div style={{ padding: '0.5rem 0', fontSize: '0.9rem' }}>
-      {routineNos.map((no) => (
-        <div key={no} style={{ marginBottom: '0.75rem' }}>
-          <strong>Routine {no}</strong>
-          <ul style={{ margin: '0.25rem 0 0 1rem', padding: 0, listStyle: 'none' }}>
-            {(byRoutine.get(no) ?? []).map((d) => (
-              <li key={d.id}>
-                Step {d.step_no}, dart {d.dart_no}: target {d.target} → actual {d.actual} ({d.result === 'H' ? 'hit' : 'miss'})
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
-    </div>
+    <table style={tableStyle}>
+      <thead>
+        <tr>
+          <th style={thTdStyle}>Routine</th>
+          <th style={thTdStyle}>Step</th>
+          <th style={thTdStyle}>Attempt</th>
+          <th style={thTdStyle}>Dart</th>
+          <th style={thTdStyle}>Target</th>
+          <th style={thTdStyle}>Actual</th>
+          <th style={thTdStyle}>Result</th>
+        </tr>
+      </thead>
+      <tbody>
+        {darts.map((d) => (
+          <tr key={d.id}>
+            <td style={thTdStyle}>{d.routine_no}</td>
+            <td style={thTdStyle}>{d.step_no}</td>
+            <td style={thTdStyle}>{d.attempt_index != null ? d.attempt_index : '—'}</td>
+            <td style={thTdStyle}>{d.dart_no}</td>
+            <td style={thTdStyle}>{d.target}</td>
+            <td style={thTdStyle}>{d.actual}</td>
+            <td style={thTdStyle}>{d.result === 'H' ? 'hit' : 'miss'}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }
 

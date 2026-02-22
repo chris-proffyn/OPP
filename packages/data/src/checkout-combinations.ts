@@ -57,6 +57,23 @@ export async function listCheckoutCombinations(
 }
 
 /**
+ * Get the recommended checkout combination for a given total (2–170). Returns null if none found.
+ * Used by GE to display route for current remaining. Any authenticated user.
+ */
+export async function getCheckoutCombinationByTotal(
+  client: SupabaseClient,
+  total: number
+): Promise<CheckoutCombination | null> {
+  const { data, error } = await client
+    .from(CHECKOUT_COMBINATIONS_TABLE)
+    .select('*')
+    .eq('total', total)
+    .maybeSingle();
+  if (error) mapError(error);
+  return (data ?? null) as CheckoutCombination | null;
+}
+
+/**
  * Update a checkout combination by id (dart1, dart2, dart3). Admin only.
  */
 export async function updateCheckoutCombination(

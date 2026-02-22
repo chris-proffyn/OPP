@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   getRoutineById,
+  hasPlayerStepRunsForRoutine,
   isDataError,
   ROUTINE_TYPES,
   setRoutineSteps,
@@ -29,6 +30,8 @@ export function AdminRoutineEditPage() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [steps, setSteps] = useState<StepRow[]>([]);
+  /** Snapshot of steps when loaded; used to avoid replacing steps when only name/description changed. */
+  const [initialSteps, setInitialSteps] = useState<StepRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,13 +47,13 @@ export function AdminRoutineEditPage() {
         if (data) {
           setName(data.routine.name);
           setDescription(data.routine.description ?? '');
-          setSteps(
-            data.steps.map((s) => ({
-              step_no: s.step_no,
-              target: s.target,
-              routine_type: s.routine_type ?? suggestRoutineTypeFromTarget(s.target),
-            }))
-          );
+          const loadedSteps = data.steps.map((s) => ({
+            step_no: s.step_no,
+            target: s.target,
+            routine_type: s.routine_type ?? suggestRoutineTypeFromTarget(s.target),
+          }));
+          setSteps(loadedSteps);
+          setInitialSteps(loadedSteps);
         } else {
           setNotFound(true);
         }
@@ -86,6 +89,13 @@ export function AdminRoutineEditPage() {
     });
   };
 
+  const stepsEqual = (a: StepRow[], b: StepRow[]) =>
+    a.length === b.length &&
+    a.every((s, i) => {
+      const t = b[i];
+      return t && s.step_no === t.step_no && s.target.trim() === t.target.trim() && (s.routine_type ?? 'SS') === (t.routine_type ?? 'SS');
+    });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!id) return;
@@ -98,11 +108,21 @@ export function AdminRoutineEditPage() {
     setSubmitting(true);
     try {
       await updateRoutine(supabase, id, { name, description: description.trim() || null });
-      await setRoutineSteps(supabase, id, steps.map((s) => ({
+      const stepsPayload = steps.map((s) => ({
         step_no: s.step_no,
         target: s.target.trim(),
         routine_type: s.routine_type ?? suggestRoutineTypeFromTarget(s.target),
-      })));
+      }));
+      const stepsChanged = !stepsEqual(stepsPayload, initialSteps);
+      if (stepsChanged) {
+        const inUse = await hasPlayerStepRunsForRoutine(supabase, id);
+        if (inUse) {
+          setError('Step list was not changed because this routine has been used in session runs. Name and description were saved.');
+          load();
+          return;
+        }
+        await setRoutineSteps(supabase, id, stepsPayload);
+      }
       load();
     } catch (err) {
       setError(isDataError(err) ? err.message : 'Failed to save routine.');

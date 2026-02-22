@@ -129,6 +129,9 @@ export function AdminScheduleEditPage() {
         <div style={{ marginBottom: '0.5rem' }}>
           <strong>Entries</strong> (day no, session no, session)
         </div>
+        <p style={{ fontSize: '0.875rem', color: 'var(--color-muted, #525252)', marginBottom: '0.5rem' }}>
+          ITA is no longer part of schedules; players complete ITA from the home screen.
+        </p>
         <table style={{ borderCollapse: 'collapse', width: '100%', marginBottom: '0.75rem' }}>
           <thead>
             <tr>

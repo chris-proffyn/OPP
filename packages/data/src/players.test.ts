@@ -156,6 +156,16 @@ describe('updatePlayer', () => {
     expect(result.nickname).toBe('Updated');
   });
 
+  it('updates score_input_mode when provided', async () => {
+    const updated = { ...samplePlayer, score_input_mode: 'voice' as const };
+    const client = mockClient({
+      authGetUser: { user: { id: 'uid-1' }, error: null },
+      update: { data: updated, error: null },
+    });
+    const result = await updatePlayer(client, { score_input_mode: 'voice' });
+    expect(result.score_input_mode).toBe('voice');
+  });
+
   it('returns current player when payload is empty', async () => {
     const client = mockClient({
       authGetUser: { user: { id: 'uid-1' }, error: null },

@@ -1,7 +1,8 @@
 /**
  * P5 ITA (Initial Training Assessment) scoring — pure functions.
  * Per OPP_TRAINING_RATING_ENGINE_SPEC_v2.md §4 and P5_TRAINING_RATING_DOMAIN.md §5.2.
- * No Supabase dependency.
+ * No Supabase dependency. No expected level: ratings are computed from raw dart outcomes only,
+ * for use at ITA completion when OPP assigns BR and initial TR.
  */
 
 /**
@@ -64,15 +65,43 @@ export function computeCheckoutRating(avgDartsAboveMin: number): number {
   return rLo + frac * (rHi - rLo);
 }
 
+/** Weights for ITA score by type. Only types present in the session are included. */
+const ITA_WEIGHTS: Record<'Singles' | 'Doubles' | 'Trebles' | 'Checkout', number> = {
+  Singles: 3,
+  Doubles: 2,
+  Trebles: 2,
+  Checkout: 1,
+};
+
 /**
- * ITA score = (3×Singles + 2×Doubles + 1×Checkout) / 6. Rounded down to integer (e.g. L29).
- * Example: 26.4, 9, 80 → 29.53 → 29 (spec §4.5).
+ * ITA score = weighted average of ratings for types present. Weights: Singles 3, Doubles 2, Trebles 2, Checkout 1.
+ * When typesPresent is given, only those types are included (no particular combination required).
+ * When typesPresent is omitted, backward-compat: S+D+C, or S+D+T+C if treblesRating provided.
+ * Rounded down to integer.
  */
 export function computeITAScore(
   singlesRating: number,
   doublesRating: number,
-  checkoutRating: number
+  checkoutRating: number,
+  treblesRating?: number,
+  typesPresent?: ReadonlyArray<'Singles' | 'Doubles' | 'Trebles' | 'Checkout'>
 ): number {
-  const raw = (3 * singlesRating + 2 * doublesRating + 1 * checkoutRating) / 6;
-  return Math.floor(raw);
+  const present =
+    typesPresent && typesPresent.length > 0
+      ? typesPresent
+      : (['Singles', 'Doubles', 'Checkout'] as const).concat(
+          treblesRating !== undefined && treblesRating !== null ? (['Trebles'] as const) : []
+        );
+  let sum = 0;
+  let weightSum = 0;
+  for (const t of present) {
+    const w = ITA_WEIGHTS[t];
+    weightSum += w;
+    if (t === 'Singles') sum += w * singlesRating;
+    else if (t === 'Doubles') sum += w * doublesRating;
+    else if (t === 'Trebles') sum += w * (treblesRating ?? 0);
+    else sum += w * checkoutRating;
+  }
+  if (weightSum === 0) return 0;
+  return Math.floor(sum / weightSum);
 }

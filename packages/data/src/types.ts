@@ -27,6 +27,8 @@ export interface Player {
   tier?: 'free' | 'gold' | 'platinum';
   /** P6: Optional profile image URL; upload pipeline TBD. */
   avatar_url?: string | null;
+  /** Default score input mode for play: voice or manual. */
+  score_input_mode?: 'voice' | 'manual';
   date_joined: string;
   role: 'player' | 'admin';
   created_at: string;
@@ -48,6 +50,7 @@ export interface UpdatePlayerPayload {
   full_name?: string | null;
   gender?: string | null;
   age_range?: string | null;
+  score_input_mode?: 'voice' | 'manual';
 }
 
 // ---------------------------------------------------------------------------

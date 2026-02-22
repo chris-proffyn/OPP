@@ -110,7 +110,7 @@ return ( /* React Native or non-themed fallback */ );
 | Nav bar icons | `.pcp-nav-icon-fill`, `--pcp-nav-icon-fill`   | `apps/web/src/components/NavIcon.tsx`   | `apps/web/index.html`  |
 | Brand logo    | `.pcp-brand-logo-fill`, `--pcp-brand-logo-fill` | `apps/web/src/components/BrandLogo.tsx` | `apps/web/index.html`  |
 
-- **NavIcon**: wrapper div with `pcp-nav-icon-fill` and `--pcp-nav-icon-fill: iconColor` (derived from theme primary/secondary and active state).
+- **NavIcon**: wrapper div with `pcp-nav-icon-fill` and `--pcp-nav-icon-fill: var(--color-text)` so nav icons (Play, Stats) follow light/dark theme. Used in `AuthenticatedLayout` with `opp-play.svg` and `opp-stats.svg`.
 - **BrandLogo**: optional `fillColor` prop; when set, wrapper div with `pcp-brand-logo-fill` and `--pcp-brand-logo-fill: fillColor`. Consumers pass e.g. `fillColor={theme.colors?.primary ?? '#2571b8'}`.
 
 ---

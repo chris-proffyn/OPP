@@ -2,7 +2,7 @@
 
 Detailed implementation checklist for the functionality described in **OPP_CHECKOUT_TRAINING_DOMAIN.md**, with reference to **OPP_SCORING_UPDATE.md** where relevant. This covers admin configuration, player execution flow, expectation formula, step/routine/session scoring, and data model changes.
 
-**Prerequisites**: Routine types (SS, SD, ST, C) and `routine_type` on `routine_steps` and `level_requirements` are already in scope per OPP_SCORING_UPDATE_IMPLEMENTATION_TASKS.md and migration `20260230120000_add_routine_type_to_steps_and_level_requirements.sql`. This checklist focuses on **checkout (C)** behaviour end-to-end.
+**Prerequisites**: Routine types (SS, SD, ST, C) and `routine_type` on `routine_steps` and `level_requirements` are already in scope per OPP_SCORING_UPDATE_IMPLEMENTATION_TASKS.md and migration `20260230120000_add_routine_type_to_steps_and_level_requirements.sql`. This checklist focuses on **checkout (C)** behaviour end-to-end. Game screen layout and score grid are extended by **BACKLOG_IMPLEMENTATION_CHECKLIST**.
 
 ---
 

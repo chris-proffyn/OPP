@@ -8,6 +8,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { getAllSessionsForPlayer, isDataError } from '@opp/data';
 import type { SessionWithStatus } from '@opp/data';
 import { useSupabase } from '../context/SupabaseContext';
+import { hasCompletedITA, PLAY_MUST_COMPLETE_ITA_MESSAGE } from '../utils/ita';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorMessage } from '../components/ErrorMessage';
 
@@ -41,8 +42,17 @@ export function PlayLandingPage() {
   const [error, setError] = useState<string | null>(null);
   const [retryTrigger, setRetryTrigger] = useState(0);
 
+  // Direct to ITA when player has not completed ITA (admins can still see play list). OPP_ITA §3; message per OPP_ITA_UPDATE §2.
+  useEffect(() => {
+    if (!player || player.role === 'admin') return;
+    if (!hasCompletedITA(player)) {
+      navigate('/play/ita', { replace: true, state: { message: PLAY_MUST_COMPLETE_ITA_MESSAGE } });
+    }
+  }, [player, navigate]);
+
   useEffect(() => {
     if (!player) return;
+    if (!hasCompletedITA(player) && player.role !== 'admin') return;
     setLoading(true);
     setError(null);
     getAllSessionsForPlayer(supabase, player.id)
@@ -53,6 +63,9 @@ export function PlayLandingPage() {
       .finally(() => setLoading(false));
   }, [supabase, player, retryTrigger]);
 
+  if (player && !hasCompletedITA(player) && player.role !== 'admin') {
+    return <><h1>Play</h1><LoadingSpinner message="Taking you to ITA…" /></>;
+  }
   if (loading) return <><h1>Play</h1><LoadingSpinner message="Loading sessions…" /></>;
   if (error) {
     return (

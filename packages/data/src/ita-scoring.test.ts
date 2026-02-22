@@ -83,6 +83,20 @@ describe('computeITAScore', () => {
     expect(computeITAScore(30, 30, 30)).toBe(30);
     expect(computeITAScore(26.4, 9, 80)).toBe(29);
   });
+
+  it('returns 0 when all ratings are 0', () => {
+    expect(computeITAScore(0, 0, 0)).toBe(0);
+  });
+
+  it('handles fractional result by flooring', () => {
+    expect(computeITAScore(10, 10, 10)).toBe(10);
+    expect(computeITAScore(1, 1, 1)).toBe(1);
+  });
+
+  it('uses only types present when typesPresent is given (e.g. SS+SD+ST, no Checkout)', () => {
+    // (3*30 + 2*20 + 2*10) / (3+2+2) = 150/7 ≈ 21.43 → 21
+    expect(computeITAScore(30, 20, 0, 10, ['Singles', 'Doubles', 'Trebles'])).toBe(21);
+  });
 });
 
 describe('ITA pure functions — OPP_TRAINING_RATING_ENGINE_SPEC_v2.md §4 examples (P5 §9.4)', () => {

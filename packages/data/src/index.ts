@@ -144,9 +144,11 @@ export {
   deleteLevelRequirement,
 } from './level-requirements';
 export {
+  getCheckoutCombinationByTotal,
   listCheckoutCombinations,
   updateCheckoutCombination,
 } from './checkout-combinations';
+export { getRecommendedSegmentForRemaining } from './get-recommended-checkout-segment';
 export {
   listLevelAverages,
   getLevelAverageById,
@@ -162,6 +164,7 @@ export {
 } from './checkout-expectation';
 export type { ExpectedCheckoutResult, LevelAverageForCheckout } from './checkout-expectation';
 export {
+  getPlayerCheckoutVariationByTotal,
   listPlayerCheckoutVariations,
   createPlayerCheckoutVariation,
   updatePlayerCheckoutVariation,
@@ -225,6 +228,7 @@ export {
   listPlayerStepRunsByTrainingId,
   getPlayerStepRunsForSessionRun,
   getPlayerStepRunByTrainingRoutineStep,
+  hasPlayerStepRunsForRoutine,
 } from './player-step-runs';
 export {
   insertPlayerAttemptResult,
@@ -240,7 +244,10 @@ export {
   insertDartScore,
   insertDartScores,
   listDartScoresByTrainingId,
+  listDartScoresForStep,
   getDartScoresForSessionRun,
+  deleteDartScore,
+  revertLastVisit,
 } from './dart-scores';
 export {
   listRoutineScoresForSessionRun,
@@ -259,9 +266,19 @@ export {
   completeITAAndSetBR,
   computeITARatingsFromDartScores,
   deriveITARatingsFromSessionRun,
+  getITACalendarEntryForPlayer,
+  getOrCreateITACalendarEntryForPlayer,
   getRoutineITAType,
+  hasCompletedITA,
+  isITASession,
 } from './ita-session';
-export type { DartRow, ITARatings, ITARoutineInfo, ITARoutineType } from './ita-session';
+export type {
+  DartRow,
+  ITARatings,
+  ITARoutineInfo,
+  ITARoutineType,
+  PlayerITAStatus,
+} from './ita-session';
 export {
   OMR_WINDOW_SIZE,
   OMR_TRIM_THRESHOLD,

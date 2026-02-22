@@ -105,21 +105,21 @@ Product decision: whether “BR = 0” means “no rating yet” (TR null or 0) 
 
 ### 5.2 Initial Training Assessment (ITA, Option B)
 
-- **ITA session:** A special session type that contains exactly three routines in order: **Singles**, **Doubles**, **Checkout** (per TR spec §4.1). Identification: by session name or by a dedicated session type/flag (e.g. admin creates a session “ITA” with those three routines). Implementation may use a fixed session name or a configurable “ITA session” marker.
-- **Singles routine (§4.2):** Segments (e.g. 20, 16, 12, 19, 1); 9 darts per segment. Segment score = (hits / 9) × 100. Singles score = average of segment scores. Singles rating = that % (e.g. 26.4% → L26.4).
-- **Doubles routine (§4.3):** Segments 20, 10, 16, 8, 4. Measure: average darts to hit the double. Sliding scale: 1 dart → 100, 2 → 90, 3 → 70, 4 → 50, 5 → 30, >5 → 0; linear interpolation between.
-- **Checkout routine (§4.4):** Checkouts 56, 39, 29, 23, 15. Measure: darts above minimum. Scale: min → 100, min+1 → 80, min+2 → 60, min+3 → 40, min+4 → 20, min+10+ → 0.
-- **ITA score (§4.5):**  
-  **ITA = (3 × Singles_rating + 2 × Doubles_rating + 1 × Checkout_rating) / 6**  
-  Rounded (e.g. down to integer) → e.g. L29.
-- **BR from ITA:** Either BR = ITA score (recommended) or BR = 50% of ITA (headroom). **Initial CR:** Set `training_rating = baseline_rating` when BR is set from ITA.
-- **When to run ITA:** Once per player (e.g. before first training session, or as first “session” in cohort). Re-assessment: out of scope or optional admin action (reset BR/ITA and allow second ITA).
+- **ITA as initial assessment:** The ITA has **no expected level of performance**. The player follows the session plan (routines and routine steps) and records their darts. **At completion**, OPP evaluates performance from the **recorded dart data only** (no comparison to level requirements or expected hits) and assigns **BR** and **initial TR**.
+- **ITA session:** A special session type identified by session name “ITA” or “Initial Training Assessment”. It contains one or more routines; each routine is classified by step `routine_type` (SS, SD, ST, C). No particular combination is required. Implementation: `isITASession(sessionName)`, `getRoutineITAType(stepRoutineType)` in `@opp/data`.
+- **Evaluation (at completion):** From `dart_scores` for the session run, pure functions compute:
+  - **Singles (SS):** Segment score = (hits / 9) × 100 per step; Singles rating = average of segment scores.
+  - **Doubles (SD):** Darts to first hit per step; scale 1→100, 6→0; Doubles rating from average.
+  - **Trebles (ST):** Same as Singles (segment score average).
+  - **Checkout (C):** Darts above minimum per step; scale min→100, min+4→20, etc.
+- **ITA score:** Weighted average of the ratings for the routine types present (e.g. weights Singles 3, Doubles 2, Trebles 2, Checkout 1). Rounded down to integer → e.g. L29.
+- **BR and initial TR from ITA:** Set `baseline_rating` and `training_rating` to the ITA score when ITA is completed. **When to run ITA:** Once per player, before other training. Re-assessment: out of scope or optional admin action.
 
 ### 5.3 Data layer (BR / ITA)
 
 - **setBaselineAndTrainingRating(client, playerId, baselineRating)** — Set `players.baseline_rating` and `players.training_rating` to the same value (e.g. after ITA). Only if current user is that player or admin. Idempotent or guarded so BR is set only once unless re-assessment is supported.
 - **getPlayerById(client, playerId)** — Already exists; returns baseline_rating, training_rating.
-- ITA calculation can live in `packages/data` or in app logic that reads dart_scores/session run for the ITA session and computes Singles/Doubles/Checkout then ITA; then calls setBaselineAndTrainingRating. Prefer pure functions for Singles/Doubles/Checkout/ITA math so they are testable.
+- **ITA evaluation:** No expected level is used. At session completion, `completeITAAndSetBR` reads `dart_scores` for the session run and uses pure functions (`computeITARatingsFromDartScores`, `computeITAScore`) to derive ratings and ITA score from **raw dart data only**; then calls `setBaselineAndTrainingRating` and `setPlayerITACompleted`. Level requirements and expected hits are not used for ITA scoring.
 
 ---
 

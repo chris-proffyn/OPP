@@ -148,3 +148,23 @@ export async function getPlayerStepRunByTrainingRoutineStep(
 
 /** Alias for listPlayerStepRunsByTrainingId (step runs for a session run). */
 export const getPlayerStepRunsForSessionRun = listPlayerStepRunsByTrainingId;
+
+/**
+ * Return true if any player_step_runs exist for this routine (routine has been used in a session run).
+ * Used by admin to avoid replacing routine_steps when that would violate FK from player_step_runs.routine_step_id.
+ */
+export async function hasPlayerStepRunsForRoutine(
+  client: SupabaseClient,
+  routineId: string
+): Promise<boolean> {
+  const { data, error } = await client
+    .from(TABLE)
+    .select('id')
+    .eq('routine_id', routineId)
+    .limit(1);
+  if (error) {
+    console.error('[@opp/data] hasPlayerStepRunsForRoutine error:', error);
+    return false;
+  }
+  return (data?.length ?? 0) > 0;
+}

@@ -66,6 +66,8 @@ Example: a L30 player throwing 9 darts is expected to hit a single more often th
 
 **[OPP_CHECKOUT_TRAINING_IMPLEMENTATION_CHECKLIST.md](./OPP_CHECKOUT_TRAINING_IMPLEMENTATION_CHECKLIST.md)** — full implementation checklist (§1–§8). Delivered: migrations (player_step_runs, player_attempt_results, attempt_index on dart_scores, checkout config on level_requirements), expectation formula and getExpectedCheckoutSuccesses in @opp/data, step/routine/session scoring, Game Engine checkout flow (PlaySessionPage), admin routine/level-requirement UI for C, unit tests and documentation.
 
+**Checkout update (route display):** During play on a checkout step, the GE displays a **Checkout** badge, **Start** (original target), **Remaining** (live), and when remaining is 2–170: **Recommended** route from `checkout_combinations` and **Your route** from `player_checkout_variations` (via `getCheckoutCombinationByTotal` and `getPlayerCheckoutVariationByTotal` in @opp/data). See **[OPP_CHECKOUT_UPDATE_DOMAIN.md](./OPP_CHECKOUT_UPDATE_DOMAIN.md)** and **[OPP_CHECKOUT_UPDATE_IMPLEMENTATION_CHECKLIST.md](./OPP_CHECKOUT_UPDATE_IMPLEMENTATION_CHECKLIST.md)**.
+
 ---
 
 ## Data model changes (summary)
@@ -80,7 +82,8 @@ Example: a L30 player throwing 9 darts is expected to hit a single more often th
 
 - Add column **routine_type**. Allowed values: `SS`, `SD`, `ST`, `C`.  
 - Uniqueness changed to **(min_level, routine_type)** so each level band can have one row per routine type (e.g. 0–9 SS, 0–9 SD, 0–9 ST, 0–9 C).  
-- `tgt_hits` and `darts_allowed` apply per (min_level, routine_type) for single-dart; checkout (C) may use additional config (see checkout implementation checklist).  
+- `tgt_hits` and `darts_allowed` apply per (min_level, routine_type) for single-dart; checkout (C) uses **allowed_throws_per_attempt** (darts per attempt, e.g. 9) and **attempt_count** (attempts per step, e.g. 3).  
+- **Darts per step** is configurable by routine_type: SS, SD, ST use `darts_allowed`; C uses `allowed_throws_per_attempt` (with `attempt_count` for how many attempts). GE loads level requirements for all four routine types and uses the current step’s type to determine N (darts per visit) and checkout attempt count. Configure in Admin → Level requirements (one row per min_level + routine_type).  
 - Implemented in the same migration as above.
 
 ---

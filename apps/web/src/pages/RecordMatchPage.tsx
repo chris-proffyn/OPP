@@ -14,6 +14,7 @@ import {
 import type { OpponentOption } from '@opp/data';
 import type { Competition } from '@opp/data';
 import { useSupabase } from '../context/SupabaseContext';
+import { hasCompletedITA } from '../utils/ita';
 
 const FORMAT_OPTIONS = [5, 7, 9, 11] as const;
 
@@ -121,6 +122,22 @@ export function RecordMatchPage() {
       <>
         <h1>Record match</h1>
         <p>Match recorded. Your ratings have been updated. Redirecting to dashboard…</p>
+      </>
+    );
+  }
+
+  if (player && !hasCompletedITA(player) && player.role !== 'admin') {
+    return (
+      <>
+        <h1>Record match</h1>
+        <p>Complete your Initial Training Assessment before recording matches.</p>
+        <p>
+          <Link to="/play/ita" style={{ fontWeight: 500 }}>Complete ITA</Link>
+          {' · '}
+          <Link to="/profile" style={{ fontWeight: 500 }}>Profile</Link>
+          {' · '}
+          <Link to="/play" style={{ fontWeight: 500 }}>Play</Link>
+        </p>
       </>
     );
   }

@@ -92,8 +92,8 @@ export async function insertDartScores(
 }
 
 /**
- * List all dart scores for a session run (training_id). Ordered by routine_no, step_no, dart_no.
- * Used for ITA rating derivation.
+ * List all dart scores for a session run (training_id). Ordered by routine_no, step_no, attempt_index, dart_no.
+ * Used for ITA rating derivation and Analyzer "View darts". attempt_index is null for non-checkout; sorts last.
  */
 export async function listDartScoresByTrainingId(
   client: SupabaseClient,
@@ -105,6 +105,7 @@ export async function listDartScoresByTrainingId(
     .eq('training_id', trainingId)
     .order('routine_no', { ascending: true })
     .order('step_no', { ascending: true })
+    .order('attempt_index', { ascending: true, nullsFirst: false })
     .order('dart_no', { ascending: true });
   if (error) mapError(error);
   return (data ?? []) as DartScore[];
@@ -121,4 +122,63 @@ export async function getDartScoresForSessionRun(
   trainingId: string
 ): Promise<DartScore[]> {
   return listDartScoresByTrainingId(client, trainingId);
+}
+
+/**
+ * Delete a dart score by id. Used for "Undo Last" and "Correct visit" revert.
+ * RLS: players can delete own (dart_scores_delete_own); admin can delete any (dart_scores_delete_admin).
+ */
+export async function deleteDartScore(
+  client: SupabaseClient,
+  id: string
+): Promise<void> {
+  const { error } = await client.from(DART_SCORES_TABLE).delete().eq('id', id);
+  if (error) mapError(error);
+}
+
+/**
+ * List dart scores for a single step (training_id, routine_id, routine_no, step_no).
+ * Ordered by attempt_index (nulls last), dart_no. Used for "Correct visit" to find last visit to revert.
+ */
+export async function listDartScoresForStep(
+  client: SupabaseClient,
+  trainingId: string,
+  routineId: string,
+  routineNo: number,
+  stepNo: number
+): Promise<DartScore[]> {
+  const all = await listDartScoresByTrainingId(client, trainingId);
+  return all
+    .filter(
+      (d) =>
+        d.routine_id === routineId && d.routine_no === routineNo && d.step_no === stepNo
+    )
+    .sort((a, b) => {
+      const ai = a.attempt_index ?? 0;
+      const bi = b.attempt_index ?? 0;
+      if (ai !== bi) return ai - bi;
+      return a.dart_no - b.dart_no;
+    });
+}
+
+/**
+ * Revert the last visit for a step: delete the last N dart_scores for (training_id, routine_id, routine_no, step_no).
+ * Returns the deleted rows so the caller can e.g. update player_step_run for checkout (decrement actual_successes if that visit was a success).
+ * RLS: requires player_id = current_user_player_id() (dart_scores_delete_own).
+ */
+export async function revertLastVisit(
+  client: SupabaseClient,
+  trainingId: string,
+  routineId: string,
+  routineNo: number,
+  stepNo: number,
+  dartsPerVisit: number
+): Promise<DartScore[]> {
+  const stepDarts = await listDartScoresForStep(client, trainingId, routineId, routineNo, stepNo);
+  if (stepDarts.length < dartsPerVisit) return [];
+  const toDelete = stepDarts.slice(-dartsPerVisit);
+  for (const row of toDelete) {
+    await deleteDartScore(client, row.id);
+  }
+  return toDelete;
 }

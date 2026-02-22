@@ -4,7 +4,7 @@
  */
 
 import { DataError } from './errors';
-import { getDartScoresForSessionRun, insertDartScore, insertDartScores } from './dart-scores';
+import { deleteDartScore, getDartScoresForSessionRun, insertDartScore, insertDartScores } from './dart-scores';
 import type { DartScore, DartScorePayload } from './types';
 import { createMockClient } from './test-utils';
 
@@ -123,5 +123,12 @@ describe('getDartScoresForSessionRun', () => {
     const client = createMockClient([{ data: [], error: null }]);
     const result = await getDartScoresForSessionRun(client, 'run-none');
     expect(result).toEqual([]);
+  });
+});
+
+describe('deleteDartScore', () => {
+  it('succeeds and returns without error', async () => {
+    const client = createMockClient([{ data: null, error: null }]);
+    await expect(deleteDartScore(client, 'ds-1')).resolves.toBeUndefined();
   });
 });

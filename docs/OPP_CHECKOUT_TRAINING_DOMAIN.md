@@ -41,9 +41,16 @@ For each routine step target, the player performs a fixed number of **attempts**
 Each attempt allows up to `allowed_throws_per_attempt` darts (default `9`).
 
 ### Success Criterion
-A **success** means the player checks out the target **within the allowed throws** of that attempt (default 9 darts).
+A **success** means the player checks out the target **within the allowed throws** of that attempt (default 9 darts), and the **final dart** that reduces the remaining total to zero must be a **double** (D1–D20) or **bullseye** (Bull). Any other outcome for that attempt is a **bust** (0 points for that attempt).
 
 > Note: This domain treats “checkout target” as a single number (e.g., 61) and does not require segment-route correctness to count a success. Route guidance can be layered on later. The core requirement is success/failure within an attempt window.
+
+### Valid finish and bust
+- **Valid finish:** Remaining reaches exactly 0 and the dart that brought it to 0 is a **double** (D1–D20) or **bullseye** (Bull). Example: needing 18 and hitting D9 = success.
+- **Bust (attempt fails, 0 points):**
+  - **Went over:** A dart reduces remaining below 0 (e.g. need 18, hit S20).
+  - **Left one:** Remaining becomes 1 (no double from 1). Example: need 18, hit S17 → remaining 1 = bust.
+  - **Wrong finish:** Remaining reaches 0 but the finishing dart was a single or treble (e.g. need 18, hit S18). The player must finish on a double or bull; S18 counts as a bust.
 
 ### Expected Completions
 For each step (target + player level band), OPP computes an **expected number of successes out of N attempts** (default N=9).  
@@ -113,9 +120,10 @@ When Player 1 starts the session:
        - Set `remaining = checkout_target`
        - Player throws up to `allowed_throws_per_attempt` darts
        - Record each dart in `dart_scores`
-       - Apply remaining-score rules (optional for v1 if you only track completion):
-         - If remaining reaches 0 on a valid finishing condition -> success, stop attempt
-         - If darts exhausted -> fail attempt
+       - Apply remaining-score rules:
+         - If remaining reaches 0 and the dart that caused it is a **double or bull** -> success, stop attempt
+         - If remaining goes below 0 (went over), or remaining becomes 1 (no double from 1), or remaining reaches 0 on a single/treble (invalid finish) -> **bust**, attempt fails (0 for that attempt)
+         - If darts exhausted without a valid finish -> fail attempt
    - After N attempts, set:
      - `actual_successes = count(success attempts)`
      - `step_score = Step Scoring Formula` (below)

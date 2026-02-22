@@ -16,6 +16,7 @@ import type { Cohort, Competition } from '@opp/data';
 import type { NextOrAvailableSession } from '@opp/data';
 import type { RecentSessionScore } from '@opp/data';
 import { useSupabase } from '../context/SupabaseContext';
+import { hasCompletedITA } from '../utils/ita';
 import { computeTRTrend } from '../utils/trTrend';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorMessage } from '../components/ErrorMessage';
@@ -104,9 +105,34 @@ export function HomePage() {
     );
   }
 
+  const showCompleteITA = player && !hasCompletedITA(player);
+
   return (
     <>
       <h1>Dashboard</h1>
+
+      {showCompleteITA && (
+        <section style={{ ...sectionStyle, padding: '1rem', border: '1px solid var(--color-border, #ccc)', borderRadius: 6 }} aria-label="Complete ITA">
+          <p style={{ margin: 0, marginBottom: '0.5rem' }}>
+            <Link
+              to="/play/ita"
+              className="tap-target"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                minHeight: 'var(--tap-min, 44px)',
+                fontWeight: 600,
+                fontSize: '1.05rem',
+              }}
+            >
+              Complete ITA
+            </Link>
+          </p>
+          <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--color-muted, #525252)' }}>
+            Required before training
+          </p>
+        </section>
+      )}
 
       <section style={sectionStyle} aria-label="Profile">
         <h2 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>Profile</h2>
@@ -134,7 +160,13 @@ export function HomePage() {
 
       <section style={sectionStyle} aria-label="Up next">
         <h2 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>Up next</h2>
-        {nextSession ? (
+        {showCompleteITA ? (
+          <p>
+            Complete your Initial Training Assessment (ITA) before training.
+            <br />
+            <Link to="/play/ita" className="tap-target" style={{ display: 'inline-flex' }}>Start ITA</Link>
+          </p>
+        ) : nextSession ? (
           <p>
             Up next: Day {nextSession.day_no} — {nextSession.session_name} on {formatDateTime(nextSession.scheduled_at)}
             {cohort && (

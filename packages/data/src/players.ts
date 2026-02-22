@@ -115,6 +115,7 @@ export async function updatePlayer(
   if (payload.full_name !== undefined) updates.full_name = payload.full_name;
   if (payload.gender !== undefined) updates.gender = payload.gender;
   if (payload.age_range !== undefined) updates.age_range = payload.age_range;
+  if (payload.score_input_mode !== undefined) updates.score_input_mode = payload.score_input_mode;
 
   if (Object.keys(updates).length === 0) {
     const current = await getCurrentPlayer(client);
@@ -152,7 +153,7 @@ export async function listPlayers(client: SupabaseClient): Promise<Player[]> {
 
   const { data, error } = await client
     .from(PLAYERS_TABLE)
-    .select('id, user_id, nickname, full_name, display_name, email, gender, age_range, baseline_rating, training_rating, match_rating, player_rating, ita_score, ita_completed_at, tier, avatar_url, date_joined, role, created_at, updated_at');
+    .select('id, user_id, nickname, full_name, display_name, email, gender, age_range, baseline_rating, training_rating, match_rating, player_rating, ita_score, ita_completed_at, tier, avatar_url, score_input_mode, date_joined, role, created_at, updated_at');
 
   if (error) mapSupabaseError(error);
   return (data ?? []) as Player[];

@@ -60,6 +60,26 @@ export async function listPlayerCheckoutVariations(
 }
 
 /**
+ * Get the current player's checkout variation for a given total (2–170). Returns null if none.
+ * Used by GE to display "Your route" for current remaining.
+ */
+export async function getPlayerCheckoutVariationByTotal(
+  client: SupabaseClient,
+  total: number
+): Promise<PlayerCheckoutVariation | null> {
+  const player = await getCurrentPlayer(client);
+  if (!player) throw new DataError('You must be signed in', 'UNAUTHORIZED');
+  const { data, error } = await client
+    .from(TABLE)
+    .select('*')
+    .eq('player_id', player.id)
+    .eq('total', total)
+    .maybeSingle();
+  if (error) mapError(error);
+  return (data ?? null) as PlayerCheckoutVariation | null;
+}
+
+/**
  * Create a checkout variation for the current player. Total must be 2–170; one variation per total per player.
  */
 export async function createPlayerCheckoutVariation(

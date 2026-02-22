@@ -1,35 +1,68 @@
 /**
- * Unit tests for ITA session: getRoutineITAType, computeITARatingsFromDartScores.
+ * Unit tests for ITA session: getRoutineITAType, isITASession, hasCompletedITA, computeITARatingsFromDartScores.
  */
 
 import { computeDoublesRating } from './ita-scoring';
 import {
   computeITARatingsFromDartScores,
   getRoutineITAType,
+  hasCompletedITA,
+  isITASession,
   type DartRow,
   type ITARoutineInfo,
 } from './ita-session';
 
+describe('isITASession', () => {
+  it('returns true for "ITA" and "Initial Training Assessment" (case-insensitive)', () => {
+    expect(isITASession('ITA')).toBe(true);
+    expect(isITASession('ita')).toBe(true);
+    expect(isITASession('  ita  ')).toBe(true);
+    expect(isITASession('Initial Training Assessment')).toBe(true);
+    expect(isITASession('INITIAL TRAINING ASSESSMENT')).toBe(true);
+    expect(isITASession('  initial training assessment  ')).toBe(true);
+  });
+
+  it('returns false for other session names', () => {
+    expect(isITASession('Singles')).toBe(false);
+    expect(isITASession('Day 1')).toBe(false);
+    expect(isITASession('')).toBe(false);
+    expect(isITASession('ITA Practice')).toBe(false);
+  });
+});
+
+describe('hasCompletedITA', () => {
+  it('returns false for null or undefined player', () => {
+    expect(hasCompletedITA(null)).toBe(false);
+    expect(hasCompletedITA(undefined)).toBe(false);
+  });
+
+  it('returns false when ita_completed_at is null or missing', () => {
+    expect(hasCompletedITA({})).toBe(false);
+    expect(hasCompletedITA({ ita_completed_at: null })).toBe(false);
+    expect(hasCompletedITA({ baseline_rating: 50 })).toBe(false);
+  });
+
+  it('returns true when ita_completed_at is set', () => {
+    expect(hasCompletedITA({ ita_completed_at: '2024-01-15T12:00:00Z' })).toBe(true);
+    expect(hasCompletedITA({ ita_completed_at: '' })).toBe(true);
+  });
+});
+
 describe('getRoutineITAType', () => {
-  it('identifies Singles by name', () => {
-    expect(getRoutineITAType('Singles')).toBe('Singles');
-    expect(getRoutineITAType('  singles  ')).toBe('Singles');
-    expect(getRoutineITAType('ITA Singles')).toBe('Singles');
+  it('maps SS (single segment) to Singles', () => {
+    expect(getRoutineITAType('SS')).toBe('Singles');
   });
 
-  it('identifies Doubles by name', () => {
-    expect(getRoutineITAType('Doubles')).toBe('Doubles');
-    expect(getRoutineITAType('DOUBLES')).toBe('Doubles');
+  it('maps SD (double) to Doubles', () => {
+    expect(getRoutineITAType('SD')).toBe('Doubles');
   });
 
-  it('identifies Checkout by name', () => {
-    expect(getRoutineITAType('Checkout')).toBe('Checkout');
-    expect(getRoutineITAType('Checkouts')).toBe('Checkout');
+  it('maps ST (treble) to Trebles', () => {
+    expect(getRoutineITAType('ST')).toBe('Trebles');
   });
 
-  it('returns null for non-ITA names', () => {
-    expect(getRoutineITAType('Warm up')).toBeNull();
-    expect(getRoutineITAType('')).toBeNull();
+  it('maps C (checkout) to Checkout', () => {
+    expect(getRoutineITAType('C')).toBe('Checkout');
   });
 });
 

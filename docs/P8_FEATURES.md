@@ -122,3 +122,8 @@ These capabilities extend admin reference-data management and player profile wit
 - **Data layer:** `listLevelAverages(client)`, `getLevelAverageById(client, id)`, `createLevelAverage(client, payload)`, `updateLevelAverage(client, id, payload)`, `deleteLevelAverage(client, id)` in `@opp/data` (level-averages). All write operations require admin (requireAdmin in data layer).
 - **Nav:** “Level averages” in the admin sidebar (between Level requirements and Competitions).
 - **Table:** `level_averages` (level_min, level_max, description, three_dart_avg, optional accuracy % columns) as created and populated by existing migrations (e.g. `20260229120000_create_opp_3_dart_average.sql`, `20260229130000_populate_opp_3_dart_average.sql`).
+
+### 8.4 Checkout update (route display)
+
+- **What:** In the Game Engine, on a **checkout step** (routine_type C), the UI shows a **Checkout** badge, **Start** (original target), **Remaining** (updates as darts are recorded), and for remaining 2–170: **Recommended** route (from `checkout_combinations`) and **Your route** (from `player_checkout_variations` when the player has a variation for that total).
+- **APIs:** `getCheckoutCombinationByTotal(client, total)` and `getPlayerCheckoutVariationByTotal(client, total)` in `@opp/data`. See **OPP_CHECKOUT_UPDATE_DOMAIN.md** and **OPP_CHECKOUT_UPDATE_IMPLEMENTATION_CHECKLIST.md**.

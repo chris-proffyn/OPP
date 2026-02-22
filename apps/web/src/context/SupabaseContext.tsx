@@ -69,12 +69,8 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
   const url = import.meta.env.VITE_SUPABASE_URL;
   const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-  if (!url || !anonKey) {
-    return <ConfigMissing />;
-  }
-
   const client = useMemo(
-    () => getSharedClient(url, anonKey),
+    () => (url && anonKey ? getSharedClient(url, anonKey) : null),
     [url, anonKey]
   );
 
@@ -85,6 +81,7 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
   const [playerLoading, setPlayerLoading] = useState(false);
 
   const fetchPlayer = useCallback(async () => {
+    if (!client) return;
     const { data: { user: u } } = await client.auth.getUser();
     if (!u) {
       setPlayer(null);
@@ -100,6 +97,10 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
   }, [client]);
 
   useEffect(() => {
+    if (!client) {
+      setAuthLoading(false);
+      return;
+    }
     const {
       data: { subscription },
     } = client.auth.onAuthStateChange((_event, session) => {
@@ -115,32 +116,40 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
       }
     });
     return () => subscription.unsubscribe();
-  }, [fetchPlayer]);
+  }, [client, fetchPlayer]);
 
   const signOut = useCallback(async () => {
+    if (!client) return;
     setAuthLoading(true);
     await client.auth.signOut();
     setPlayer(null);
     setAuthLoading(false);
-  }, []);
+  }, [client]);
 
   const refetchPlayer = useCallback(async () => {
     await fetchPlayer();
   }, [fetchPlayer]);
 
-  const value = useMemo<SupabaseContextValue>(
-    () => ({
-      supabase: client,
-      user,
-      authLoading,
-      authError,
-      player,
-      playerLoading,
-      signOut,
-      refetchPlayer,
-    }),
-    [user, authLoading, authError, player, playerLoading, signOut, refetchPlayer]
+  const value = useMemo<SupabaseContextValue | null>(
+    () =>
+      client
+        ? {
+            supabase: client,
+            user,
+            authLoading,
+            authError,
+            player,
+            playerLoading,
+            signOut,
+            refetchPlayer,
+          }
+        : null,
+    [client, user, authLoading, authError, player, playerLoading, signOut, refetchPlayer]
   );
+
+  if (!url || !anonKey) {
+    return <ConfigMissing />;
+  }
 
   return (
     <SupabaseContext.Provider value={value}>{children}</SupabaseContext.Provider>
