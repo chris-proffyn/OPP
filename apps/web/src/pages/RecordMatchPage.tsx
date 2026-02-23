@@ -52,7 +52,7 @@ export function RecordMatchPage() {
     setError(null);
     (async () => {
       try {
-        const [_cohort, opps, comps] = await Promise.all([
+        const [, opps, comps] = await Promise.all([
           getCurrentCohortForPlayer(supabase, player.id),
           getOpponentsInCurrentCohort(supabase, player.id),
           getCurrentCohortForPlayer(supabase, player.id).then((c) =>

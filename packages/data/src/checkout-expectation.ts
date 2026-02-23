@@ -88,7 +88,7 @@ export function computeExpectedCheckoutSuccesses(
   log('Step 7 — P_checkout (prob. checkout in one attempt):', { P_reach, P_finish_given_reach, P_checkout, formula: 'P_reach * P_finish_given_reach' });
 
   // Step 8
-  let expected_successes = attemptCount * P_checkout;
+  const expected_successes = attemptCount * P_checkout;
   let expected_successes_int = Math.round(expected_successes);
   expected_successes_int = Math.max(0, Math.min(expected_successes_int, attemptCount));
   log('Step 8 — expected_successes & int:', { attemptCount, P_checkout, expected_successes, expected_successes_int, formula: 'attempt_count * P_checkout, rounded, clamped [0, attempt_count]' });

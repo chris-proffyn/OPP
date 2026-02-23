@@ -11,17 +11,8 @@ export function createMockClient(responses: Response[]): SupabaseClient {
   const queue = [...responses];
   const next = (): Response => queue.shift() ?? { data: null, error: null };
   const thenable = (): Promise<Response> => Promise.resolve(next());
-  const listThenable = () => ({
-    then(resolve: (r: Response) => void, reject?: (e: unknown) => void) {
-      return thenable().then(resolve, reject);
-    },
-    catch(r: (e: unknown) => void) {
-      return thenable().catch(r);
-    },
-    in: () => thenable(),
-  });
 
-  const from = (table?: string) => ({
+  const from = (_table?: string) => ({
     select: (cols?: string | string[], opts?: { count?: string; head?: boolean }) => {
       if (cols === '*' || (Array.isArray(cols) && cols.length > 0)) {
         return {

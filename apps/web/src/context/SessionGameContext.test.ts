@@ -4,6 +4,7 @@
  * computeRemaining, computeCheckoutBustReason.
  */
 
+import type { LevelRequirement, RoutineStep } from '@opp/data';
 import {
   computeCheckoutBustReason,
   computeRemaining,
@@ -43,25 +44,25 @@ describe('getDartsPerStep', () => {
   });
 
   it('uses darts_allowed for SS/SD/ST', () => {
-    expect(getDartsPerStep({ darts_allowed: 1 } as any, 'SS')).toBe(1);
-    expect(getDartsPerStep({ darts_allowed: 3 } as any, 'SD')).toBe(3);
+    expect(getDartsPerStep({ darts_allowed: 1 } as unknown as LevelRequirement, 'SS')).toBe(1);
+    expect(getDartsPerStep({ darts_allowed: 3 } as unknown as LevelRequirement, 'SD')).toBe(3);
   });
 
   it('uses allowed_throws_per_attempt or darts_allowed for C', () => {
-    expect(getDartsPerStep({ allowed_throws_per_attempt: 6, darts_allowed: 9 } as any, 'C')).toBe(6);
-    expect(getDartsPerStep({ darts_allowed: 9 } as any, 'C')).toBe(9);
+    expect(getDartsPerStep({ allowed_throws_per_attempt: 6, darts_allowed: 9 } as unknown as LevelRequirement, 'C')).toBe(6);
+    expect(getDartsPerStep({ darts_allowed: 9 } as unknown as LevelRequirement, 'C')).toBe(9);
   });
 });
 
 describe('getLevelReqForStep', () => {
   it('returns level req for given routine type', () => {
-    const byType = { SS: { darts_allowed: 3 } as any, C: { attempt_count: 3 } as any };
+    const byType = { SS: { darts_allowed: 3 } as unknown as LevelRequirement, C: { attempt_count: 3 } as unknown as LevelRequirement };
     expect(getLevelReqForStep(byType, 'SS')).toEqual({ darts_allowed: 3 });
     expect(getLevelReqForStep(byType, 'C')).toEqual({ attempt_count: 3 });
   });
 
   it('falls back to SS when routine type missing', () => {
-    const byType = { SS: { darts_allowed: 3 } as any };
+    const byType = { SS: { darts_allowed: 3 } as unknown as LevelRequirement };
     expect(getLevelReqForStep(byType, 'SD')).toEqual({ darts_allowed: 3 });
   });
 
@@ -73,15 +74,15 @@ describe('getLevelReqForStep', () => {
 describe('hasAnyCheckoutStep', () => {
   it('returns true if any step is C', () => {
     const routines: RoutineWithSteps[] = [
-      { routine: { id: '1', name: 'R1' }, steps: [{ routine_type: 'SS', target: 'S20', step_no: 1 } as any] },
-      { routine: { id: '2', name: 'R2' }, steps: [{ routine_type: 'C', target: '41', step_no: 1 } as any] },
+      { routine: { id: '1', name: 'R1' }, steps: [{ routine_type: 'SS', target: 'S20', step_no: 1 } as unknown as RoutineStep] },
+      { routine: { id: '2', name: 'R2' }, steps: [{ routine_type: 'C', target: '41', step_no: 1 } as unknown as RoutineStep] },
     ];
     expect(hasAnyCheckoutStep(routines)).toBe(true);
   });
 
   it('returns false when no C step', () => {
     const routines: RoutineWithSteps[] = [
-      { routine: { id: '1', name: 'R1' }, steps: [{ routine_type: 'SS', target: 'S20', step_no: 1 } as any] },
+      { routine: { id: '1', name: 'R1' }, steps: [{ routine_type: 'SS', target: 'S20', step_no: 1 } as unknown as RoutineStep] },
     ];
     expect(hasAnyCheckoutStep(routines)).toBe(false);
   });

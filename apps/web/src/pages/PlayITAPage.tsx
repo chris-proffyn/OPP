@@ -17,7 +17,7 @@ export function PlayITAPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const redirectMessage = (location.state as { message?: string } | null)?.message ?? PLAY_MUST_COMPLETE_ITA_MESSAGE;
-  const [status, setStatus] = useState<'loading' | 'redirect' | 'no-ita' | 'error'>('loading');
+  const [status, setStatus] = useState<'loading' | 'redirect' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -31,12 +31,8 @@ export function PlayITAPage() {
     setErrorMessage(null);
     getOrCreateITACalendarEntryForPlayer(supabase, player.id)
       .then((itaEntry) => {
-        if (itaEntry) {
-          navigate(`/play/session/${itaEntry.calendar_id}`, { replace: true });
-          setStatus('redirect');
-        } else {
-          setStatus('no-ita');
-        }
+        navigate(`/play/session/${itaEntry.calendar_id}`, { replace: true });
+        setStatus('redirect');
       })
       .catch((err) => {
         setErrorMessage(isDataError(err) ? err.message : 'Sessions could not be loaded. Try again.');
@@ -53,25 +49,6 @@ export function PlayITAPage() {
         <h1>Initial Training Assessment</h1>
         {redirectMessage && <p style={{ color: 'var(--color-muted, #525252)', marginBottom: '1rem' }}>{redirectMessage}</p>}
         <LoadingSpinner message="Loading…" />
-      </>
-    );
-  }
-
-  if (status === 'no-ita') {
-    return (
-      <>
-        <h1>Initial Training Assessment</h1>
-        {redirectMessage && <p style={{ color: 'var(--color-muted, #525252)', marginBottom: '1rem' }}>{redirectMessage}</p>}
-        <p>
-          Something went wrong. Try again from the dashboard.
-        </p>
-        <p>
-          <Link to="/home" style={{ fontWeight: 500 }}>Dashboard</Link>
-          {' · '}
-          <Link to="/play" style={{ fontWeight: 500 }}>Play</Link>
-          {' · '}
-          <Link to="/profile" style={{ fontWeight: 500 }}>Profile</Link>
-        </p>
       </>
     );
   }

@@ -7,7 +7,6 @@ import {
   listMatchesForPlayer,
 } from './matches';
 import type { Competition } from './types';
-import type { MatchWithOpponentDisplay } from './types';
 import { createMockClient } from './test-utils';
 
 const sampleCohort = {

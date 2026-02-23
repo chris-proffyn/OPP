@@ -2,7 +2,6 @@
  * P7 — Unit tests for competitions CRUD. Mock client. Per implementation tasks §14.1.
  */
 
-import { DataError } from './errors';
 import {
   createCompetition,
   deleteCompetition,

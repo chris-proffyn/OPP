@@ -136,11 +136,9 @@ export function ProfileCheckoutVariationsPage() {
     try {
       await deletePlayerCheckoutVariation(supabase, row.id);
       setRows((prev) => prev.filter((r) => r.id !== row.id));
-      setRowEdits((prev) => {
-        const next = { ...prev };
-        delete next[row.id];
-        return next;
-      });
+      setRowEdits((prev) =>
+        Object.fromEntries(Object.entries(prev).filter(([k]) => k !== row.id))
+      );
     } catch (err) {
       setError(isDataError(err) ? err.message : 'Failed to delete.');
     } finally {

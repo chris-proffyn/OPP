@@ -46,6 +46,7 @@ WHERE c.name = 'ITA'
   );
 
 -- 5a) RLS: allow authenticated user to read the ITA cohort row (so we can resolve calendar id)
+DROP POLICY IF EXISTS cohorts_select_ita ON public.cohorts;
 CREATE POLICY cohorts_select_ita ON public.cohorts
 FOR SELECT
 USING (name = 'ITA');
@@ -54,6 +55,7 @@ COMMENT ON POLICY cohorts_select_ita ON public.cohorts IS
 'ITA Update: players can read the global ITA cohort to resolve calendar for self-assign.';
 
 -- 5b) RLS: allow authenticated player to read the ITA calendar row (so we can get calendar_id before inserting player_calendar)
+DROP POLICY IF EXISTS calendar_select_ita ON public.calendar;
 CREATE POLICY calendar_select_ita ON public.calendar
 FOR SELECT
 USING (
@@ -68,6 +70,7 @@ COMMENT ON POLICY calendar_select_ita ON public.calendar IS
 'ITA Update: players can read the global ITA calendar row to self-assign and start ITA.';
 
 -- 6) RLS: allow player to INSERT into player_calendar for the ITA calendar only (self-assign)
+DROP POLICY IF EXISTS player_calendar_insert_ita ON public.player_calendar;
 CREATE POLICY player_calendar_insert_ita ON public.player_calendar
 FOR INSERT
 WITH CHECK (

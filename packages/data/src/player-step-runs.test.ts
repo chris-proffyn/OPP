@@ -3,7 +3,6 @@
  */
 
 import type { PlayerStepRun } from './types';
-import { DataError } from './errors';
 import {
   createPlayerStepRun,
   updatePlayerStepRun,

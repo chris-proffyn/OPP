@@ -3,6 +3,7 @@
  * Requires: SUPABASE_DB_PASSWORD and SUPABASE_URL (or VITE_SUPABASE_URL) in env or .env.
  * Usage: node scripts/run-opp-3da-migrations.js
  */
+/* eslint-disable @typescript-eslint/no-var-requires */
 const { readFileSync, existsSync } = require('fs');
 const { join } = require('path');
 

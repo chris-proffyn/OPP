@@ -116,7 +116,8 @@ export function useVoiceRecognition() {
       maxListeningTimeoutRef.current = null;
     }
     const Ctor = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new Ctor!();
+    if (!Ctor) return;
+    const recognition = new Ctor();
     recognition.continuous = true;
     recognition.interimResults = false;
     recognition.lang = 'en-GB';

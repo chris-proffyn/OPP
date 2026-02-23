@@ -193,7 +193,7 @@ export async function getCompetitionReport(
   });
 
   const idList = Array.from(playerIds);
-  let displayNameByPlayer: Record<string, string | null> = {};
+  const displayNameByPlayer: Record<string, string | null> = {};
   if (idList.length > 0) {
     const { data: plRows, error } = await client
       .from(PLAYERS_TABLE)

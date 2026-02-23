@@ -43,7 +43,9 @@ export function computePR(tr: number | null, omr: number | null): number | null 
   if (!hasTr && hasOmr) return Math.round(Math.max(PR_MIN, Math.min(PR_MAX, omr)) * 10) / 10;
   const α = PR_TR_WEIGHT;
   const β = PR_OMR_WEIGHT;
-  const pr = (tr! * α + omr! * β) / (α + β);
+  const trVal = tr as number;
+  const omrVal = omr as number;
+  const pr = (trVal * α + omrVal * β) / (α + β);
   return Math.round(Math.max(PR_MIN, Math.min(PR_MAX, pr)) * 10) / 10;
 }
 

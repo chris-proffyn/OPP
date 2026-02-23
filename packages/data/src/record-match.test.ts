@@ -2,7 +2,6 @@
  * P7 — Integration-style test for recordMatch. Mock client; insert two rows, OMR/PR updates. Per §14.6.
  */
 
-import { DataError } from './errors';
 import { recordMatch } from './record-match';
 import { createMockClient } from './test-utils';
 

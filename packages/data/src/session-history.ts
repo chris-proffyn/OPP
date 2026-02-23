@@ -115,7 +115,7 @@ export async function listCompletedSessionRunsForPlayer(
 
   const prsList = (prsResult.data ?? []) as { training_id: string; routine_id: string; routine_score: number }[];
   const routineIds = [...new Set(prsList.map((p) => p.routine_id))];
-  let routineNameById = new Map<string, string>();
+  const routineNameById = new Map<string, string>();
   if (routineIds.length > 0) {
     const { data: routineRows, error: routineError } = await client
       .from(ROUTINES_TABLE)

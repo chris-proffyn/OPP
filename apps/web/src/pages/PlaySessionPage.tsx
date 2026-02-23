@@ -71,7 +71,8 @@ export function PlaySessionPage() {
             <p>
               <span style={labelStyle}>Darts per step (by routine type):</span>
               {ROUTINE_TYPES.filter((rt) => levelReqsByType[rt]).map((rt) => {
-                const lr = levelReqsByType[rt]!;
+                const lr = levelReqsByType[rt];
+                if (!lr) return '';
                 const darts = rt === 'C' ? (lr.allowed_throws_per_attempt ?? lr.darts_allowed) : lr.darts_allowed;
                 const attempts = rt === 'C' && lr.attempt_count != null ? `, ${lr.attempt_count} attempts` : '';
                 return `${rt} ${darts} darts${attempts}`;
@@ -120,6 +121,7 @@ export function PlaySessionPage() {
       levelReqsByType,
       stepIndex,
     } = gameState;
+    const { setGameState } = ctx;
     const routine = routinesWithSteps?.[routineIndex];
     if (!routine) return null;
     const step = routine.steps?.[stepIndex];
@@ -146,6 +148,33 @@ export function PlaySessionPage() {
         }
       : undefined;
 
+    const numSteps = routine.steps.length;
+    const hasNextStepInRoutine = stepIndex + 1 < numSteps;
+    const hasNextRoutine = routineIndex + 1 < routinesWithSteps.length;
+    const canGoToNextStep = hasNextStepInRoutine || hasNextRoutine;
+    const goToNextStep = () => {
+      if (!canGoToNextStep) return;
+      if (hasNextStepInRoutine) {
+        setGameState({
+          ...gameState,
+          stepIndex: stepIndex + 1,
+          attemptIndex: 1,
+          visitSelections: [],
+          completedVisitsInStep: 0,
+        });
+      } else if (hasNextRoutine) {
+        setGameState({
+          ...gameState,
+          routineIndex: routineIndex + 1,
+          stepIndex: 0,
+          attemptIndex: 1,
+          visitSelections: [],
+          allRoundScores: [],
+          completedVisitsInStep: 0,
+        });
+      }
+    };
+
     return (
       <div>
         <h1>{sessionName}</h1>
@@ -168,6 +197,29 @@ export function PlaySessionPage() {
             </p>
           )}
         </section>
+        <section style={sectionStyle} aria-label="Session data">
+          <p style={{ ...labelStyle, marginBottom: '0.25rem' }}>Routine scores</p>
+          <p style={{ margin: 0, fontSize: '0.95rem' }}>
+            {routinesWithSteps.map((r, i) => {
+              const scoreVal = routineScores[i];
+              const score =
+                i < routineScores.length && scoreVal != null
+                  ? `${scoreVal.toFixed(0)}%`
+                  : i === routineIndex
+                    ? 'In progress'
+                    : '—';
+              return (
+                <span key={r.routine.id}>
+                  {i + 1}. {score}
+                  {i < routinesWithSteps.length - 1 ? ' · ' : ''}
+                </span>
+              );
+            })}
+          </p>
+          <p style={{ margin: '0.5rem 0 0', fontSize: '0.9rem', color: 'var(--color-muted, #525252)' }}>
+            Current: Routine {routineIndex + 1}, Step {stepIndex + 1} of {numSteps}
+          </p>
+        </section>
         <section style={sectionStyle}>
           <Link
             to={`/play/session/${gameState.calendarId}/step`}
@@ -182,6 +234,14 @@ export function PlaySessionPage() {
           >
             Continue to step →
           </Link>
+          {canGoToNextStep && (
+            <>
+              {' '}
+              <button type="button" onClick={goToNextStep} style={buttonTapStyle}>
+                Next step →
+              </button>
+            </>
+          )}
         </section>
         <p>
           <Link to="/play" className="tap-target" style={{ display: 'inline-flex' }}>← Back to Play</Link>

@@ -86,17 +86,22 @@ const PLAYER_CALENDAR_TABLE = 'player_calendar';
  * Get or create the ITA calendar entry for the player (ITA outside cohort/schedule, OPP_ITA_UPDATE).
  * 1) If the player already has an ITA entry (from cohort calendar or previous get-or-create), return it.
  * 2) Otherwise, ensure the global ITA calendar exists and assign it to the player (insert player_calendar), then return it.
- * Returns null only if the global ITA calendar does not exist (migration not run or ITA session missing).
+ * Throws DataError if the global ITA calendar does not exist (migrations not run or ITA session missing).
  */
 export async function getOrCreateITACalendarEntryForPlayer(
   client: SupabaseClient,
   playerId: string
-): Promise<SessionWithStatus | null> {
+): Promise<SessionWithStatus> {
   const existing = await getITACalendarEntryForPlayer(client, playerId);
   if (existing) return existing;
 
   const calendarId = await getGlobalITACalendarId(client);
-  if (!calendarId) return null;
+  if (!calendarId) {
+    throw new DataError(
+      'ITA is not set up yet. If you are the administrator, run the database migrations (see docs). Otherwise contact support.',
+      'NOT_FOUND'
+    );
+  }
 
   await client
     .from(PLAYER_CALENDAR_TABLE)
@@ -106,7 +111,12 @@ export async function getOrCreateITACalendarEntryForPlayer(
     );
 
   const entry = await getCalendarEntryById(client, calendarId);
-  if (!entry) return null;
+  if (!entry) {
+    throw new DataError(
+      'ITA calendar could not be loaded after assigning. Try again or contact support.',
+      'NETWORK'
+    );
+  }
 
   const now = new Date().toISOString();
   const status: SessionWithStatus['status'] = entry.scheduled_at <= now ? 'Due' : 'Future';

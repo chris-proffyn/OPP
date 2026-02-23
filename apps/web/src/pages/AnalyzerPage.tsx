@@ -248,19 +248,35 @@ export function AnalyzerPage() {
                     </td>
                     {isPremiumTier && (
                       <td style={thTdStyle}>
+                        <Link
+                          to={`/analyzer/darts/${entry.id}`}
+                          state={{ sessionName: entry.session_name ?? undefined }}
+                          className="tap-target"
+                          style={{
+                            display: 'inline-flex',
+                            minHeight: 'var(--tap-min, 44px)',
+                            alignItems: 'center',
+                            color: 'var(--color-primary, #3b82f6)',
+                            textDecoration: 'none',
+                            fontWeight: 500,
+                          }}
+                        >
+                          View darts
+                        </Link>
                         <button
                           type="button"
                           onClick={() => toggleDarts(entry.id)}
                           aria-expanded={expandedRunId === entry.id}
                           aria-controls={`darts-${entry.id}`}
                           style={{
+                            marginLeft: '0.5rem',
                             minHeight: 'var(--tap-min, 44px)',
                             minWidth: 'var(--tap-min, 44px)',
                             padding: '0.5rem 0.75rem',
                             cursor: 'pointer',
                           }}
                         >
-                          {expandedRunId === entry.id ? 'Hide darts' : 'View darts'}
+                          {expandedRunId === entry.id ? 'Hide' : 'Expand'}
                         </button>
                       </td>
                     )}

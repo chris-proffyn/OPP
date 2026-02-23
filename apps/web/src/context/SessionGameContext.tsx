@@ -119,9 +119,9 @@ export type SessionGameContextValue = {
   clearVisit: () => void;
   undoLast: () => void;
   /** Returns outcome so step page can navigate (step complete, session complete, or next attempt). */
-  submitVisit: () => Promise<SubmitVisitResult | void>;
+  submitVisit: () => Promise<SubmitVisitResult | undefined>;
   /** Persist current 3-dart visit (non-checkout only). Call when visitSelections has 3 darts. */
-  submitCurrentVisit: () => Promise<SubmitVisitResult | void>;
+  submitCurrentVisit: () => Promise<SubmitVisitResult | undefined>;
 };
 
 const SessionGameContext = createContext<SessionGameContextValue | null>(null);
@@ -360,7 +360,7 @@ function useSessionGameState(calendarId: string | undefined): SessionGameContext
     });
   }, [gameState]);
 
-  const submitVisit = useCallback(async (): Promise<SubmitVisitResult | void> => {
+  const submitVisit = useCallback(async (): Promise<SubmitVisitResult | undefined> => {
     if (gameState.phase !== 'running' || !player) return;
     const {
       routinesWithSteps,
@@ -580,7 +580,7 @@ function useSessionGameState(calendarId: string | undefined): SessionGameContext
 
   const DARTS_PER_VISIT = 3;
 
-  const submitCurrentVisit = useCallback(async (): Promise<SubmitVisitResult | void> => {
+  const submitCurrentVisit = useCallback(async (): Promise<SubmitVisitResult | undefined> => {
     if (gameState.phase !== 'running' || !player) return;
     const {
       routinesWithSteps,

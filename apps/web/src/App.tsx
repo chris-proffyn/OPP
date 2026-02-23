@@ -39,6 +39,7 @@ import { AdminSchedulesPage } from './pages/AdminSchedulesPage';
 import { AdminSessionEditPage } from './pages/AdminSessionEditPage';
 import { AdminSessionNewPage } from './pages/AdminSessionNewPage';
 import { AdminSessionsPage } from './pages/AdminSessionsPage';
+import { AnalyzerDartsPage } from './pages/AnalyzerDartsPage';
 import { AnalyzerPage } from './pages/AnalyzerPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { HomePage } from './pages/HomePage';
@@ -103,6 +104,7 @@ export default function App() {
                 <Route path="summary/darts" element={<PageWithLog name="PlaySessionDartsPage"><PlaySessionDartsPage /></PageWithLog>} />
               </Route>
               <Route path="analyzer" element={<PageWithLog name="AnalyzerPage"><AnalyzerPage /></PageWithLog>} />
+              <Route path="analyzer/darts/:runId" element={<PageWithLog name="AnalyzerDartsPage"><AnalyzerDartsPage /></PageWithLog>} />
               <Route path="settings" element={<PageWithLog name="SettingsPage"><SettingsPage /></PageWithLog>} />
             </Route>
           </Route>
