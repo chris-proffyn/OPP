@@ -69,7 +69,7 @@ export function AdminSessionEditPage() {
   const updateRow = (index: number, field: keyof RoutineRow, value: number | string) => {
     setRoutines((prev) => {
       const next = [...prev];
-      (next[index] as Record<string, number | string>)[field] = value;
+      (next[index] as unknown as Record<string, number | string>)[field] = value;
       return next;
     });
   };

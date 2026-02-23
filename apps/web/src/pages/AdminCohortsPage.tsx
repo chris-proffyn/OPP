@@ -47,7 +47,7 @@ export function AdminCohortsPage() {
           }),
           Promise.all(list.map((c) => listCohortMembers(supabase, c.id))).then((memberLists) => {
             const counts: Record<string, number> = {};
-            list.forEach((c, i) => { counts[c.id] = memberLists[i].length; });
+            list.forEach((c, i) => { counts[c.id] = memberLists[i]?.length ?? 0; });
             setMemberCounts(counts);
           }),
         ]);

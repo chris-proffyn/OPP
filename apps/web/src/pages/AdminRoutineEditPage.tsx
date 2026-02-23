@@ -80,7 +80,7 @@ export function AdminRoutineEditPage() {
   const updateStep = (index: number, field: keyof StepRow, value: number | string) => {
     setSteps((prev) => {
       const next = [...prev];
-      const row = next[index] as Record<string, unknown>;
+      const row = next[index] as unknown as Record<string, unknown>;
       row[field] = value;
       if (field === 'target' && typeof value === 'string') {
         row.routine_type = suggestRoutineTypeFromTarget(value);

@@ -172,9 +172,11 @@ export async function recordMatch(
   if (error) mapError(error);
   const rows = (inserted ?? []) as Match[];
   if (rows.length !== 2) throw new DataError('Failed to insert both match rows', 'NETWORK');
-
-  const playerMatch = rows[0].player_id === payload.playerId ? rows[0] : rows[1];
-  const opponentMatch = rows[0].player_id === payload.opponentId ? rows[0] : rows[1];
+  const m0 = rows[0];
+  const m1 = rows[1];
+  if (m0 == null || m1 == null) throw new DataError('Failed to insert both match rows', 'NETWORK');
+  const playerMatch = m0.player_id === payload.playerId ? m0 : m1;
+  const opponentMatch = m0.player_id === payload.opponentId ? m0 : m1;
 
   await Promise.all([
     updatePlayerOMR(client, payload.playerId),

@@ -60,12 +60,14 @@ export async function listMatchesForPlayer(
   }
   const { data, error } = await query;
   if (error) mapError(error);
-  const rows = (data ?? []) as (Match & { opponent: { nickname: string } | null })[];
+  type Row = Match & { opponent: { nickname: string } | { nickname: string }[] | null };
+  const rows = (data ?? []) as Row[];
   return rows.map((r) => {
     const { opponent, ...match } = r;
+    const raw = Array.isArray(opponent) ? opponent[0] : opponent;
     const opponent_display_name =
-      opponent && typeof opponent === 'object' && 'nickname' in opponent
-        ? (opponent.nickname as string) ?? null
+      raw && typeof raw === 'object' && 'nickname' in raw
+        ? (raw.nickname as string) ?? null
         : null;
     return { ...match, opponent_display_name } as MatchWithOpponentDisplay;
   });

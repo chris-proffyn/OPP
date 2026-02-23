@@ -49,7 +49,7 @@ export async function listPlayerCheckoutVariations(
   client: SupabaseClient
 ): Promise<PlayerCheckoutVariation[]> {
   const player = await getCurrentPlayer(client);
-  if (!player) throw new DataError('You must be signed in', 'UNAUTHORIZED');
+  if (!player) throw new DataError('You must be signed in', 'FORBIDDEN');
   const { data, error } = await client
     .from(TABLE)
     .select('*')
@@ -68,7 +68,7 @@ export async function getPlayerCheckoutVariationByTotal(
   total: number
 ): Promise<PlayerCheckoutVariation | null> {
   const player = await getCurrentPlayer(client);
-  if (!player) throw new DataError('You must be signed in', 'UNAUTHORIZED');
+  if (!player) throw new DataError('You must be signed in', 'FORBIDDEN');
   const { data, error } = await client
     .from(TABLE)
     .select('*')
@@ -87,7 +87,7 @@ export async function createPlayerCheckoutVariation(
   payload: CreatePlayerCheckoutVariationPayload
 ): Promise<PlayerCheckoutVariation> {
   const player = await getCurrentPlayer(client);
-  if (!player) throw new DataError('You must be signed in', 'UNAUTHORIZED');
+  if (!player) throw new DataError('You must be signed in', 'FORBIDDEN');
   const total = Number(payload.total);
   if (total < 2 || total > 170 || !Number.isInteger(total)) {
     throw new DataError('Total must be an integer between 2 and 170', 'VALIDATION');
@@ -116,7 +116,7 @@ export async function updatePlayerCheckoutVariation(
   payload: UpdatePlayerCheckoutVariationPayload
 ): Promise<PlayerCheckoutVariation> {
   const player = await getCurrentPlayer(client);
-  if (!player) throw new DataError('You must be signed in', 'UNAUTHORIZED');
+  if (!player) throw new DataError('You must be signed in', 'FORBIDDEN');
   const updates: Record<string, unknown> = {};
   if (payload.dart1 !== undefined) updates.dart1 = payload.dart1;
   if (payload.dart2 !== undefined) updates.dart2 = payload.dart2;
@@ -152,7 +152,7 @@ export async function deletePlayerCheckoutVariation(
   id: string
 ): Promise<void> {
   const player = await getCurrentPlayer(client);
-  if (!player) throw new DataError('You must be signed in', 'UNAUTHORIZED');
+  if (!player) throw new DataError('You must be signed in', 'FORBIDDEN');
   const { data, error } = await client
     .from(TABLE)
     .delete()

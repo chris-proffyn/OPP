@@ -44,11 +44,10 @@ import {
 import type {
   CalendarEntryWithDetails,
   LevelRequirement,
-  RoutineStep,
   RoutineType,
 } from '@opp/data';
 import { useSupabase } from './SupabaseContext';
-import { isHitForTarget, segmentToScore } from '../constants/segments';
+import { isDoubleOrBull, isHitForTarget, segmentToScore } from '../constants/segments';
 import { hasCompletedITA, isITASession, PLAY_MUST_COMPLETE_ITA_MESSAGE } from '../utils/ita';
 import {
   computeCheckoutBustReason,

@@ -199,6 +199,7 @@ export function parseVisitFromTranscript(
   const segments: string[] = [];
   for (let i = 0; i < parts.length; i++) {
     const part = parts[i];
+    if (part == null) continue;
     let code = voiceTextToSegment(part, stepTarget);
     if (code == null) {
       const bare = part.match(/^\d{1,2}$/);

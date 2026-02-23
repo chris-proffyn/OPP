@@ -34,8 +34,11 @@ export function computeDoublesRating(avgDartsToHit: number): number {
   if (avgDartsToHit >= 6) return 0;
   const i = Math.floor(avgDartsToHit);
   const frac = avgDartsToHit - i;
-  const [d1, r1] = DOUBLES_POINTS[i - 1];
-  const [d2, r2] = DOUBLES_POINTS[i];
+  const a = DOUBLES_POINTS[i - 1];
+  const b = DOUBLES_POINTS[i];
+  if (a === undefined || b === undefined) return 0;
+  const [d1, r1] = a;
+  const [d2, r2] = b;
   return r1 + (frac * (r2 - r1)) / (d2 - d1);
 }
 
@@ -86,12 +89,14 @@ export function computeITAScore(
   treblesRating?: number,
   typesPresent?: ReadonlyArray<'Singles' | 'Doubles' | 'Trebles' | 'Checkout'>
 ): number {
-  const present =
+  const present: ReadonlyArray<'Singles' | 'Doubles' | 'Trebles' | 'Checkout'> =
     typesPresent && typesPresent.length > 0
       ? typesPresent
-      : (['Singles', 'Doubles', 'Checkout'] as const).concat(
-          treblesRating !== undefined && treblesRating !== null ? (['Trebles'] as const) : []
-        );
+      : (treblesRating !== undefined && treblesRating !== null
+          ? (['Singles', 'Doubles', 'Checkout', 'Trebles'] as const)
+          : (['Singles', 'Doubles', 'Checkout'] as const)) as ReadonlyArray<
+          'Singles' | 'Doubles' | 'Trebles' | 'Checkout'
+        >;
   let sum = 0;
   let weightSum = 0;
   for (const t of present) {

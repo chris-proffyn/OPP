@@ -11,8 +11,10 @@ export type TRTrend = 'up' | 'down' | 'stable' | null;
  */
 export function computeTRTrend(scores: { session_score: number }[]): TRTrend {
   if (scores.length < 4) return null;
-  const recent = (scores[0].session_score + scores[1].session_score) / 2;
-  const previous = (scores[2].session_score + scores[3].session_score) / 2;
+  const s0 = scores[0]; const s1 = scores[1]; const s2 = scores[2]; const s3 = scores[3];
+  if (s0 == null || s1 == null || s2 == null || s3 == null) return null;
+  const recent = (s0.session_score + s1.session_score) / 2;
+  const previous = (s2.session_score + s3.session_score) / 2;
   if (recent > previous) return 'up';
   if (recent < previous) return 'down';
   return 'stable';

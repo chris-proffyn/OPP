@@ -71,7 +71,7 @@ export function AdminScheduleEditPage() {
   const updateEntry = (index: number, field: keyof EntryRow, value: number | string) => {
     setEntries((prev) => {
       const next = [...prev];
-      (next[index] as Record<string, number | string>)[field] = value;
+      (next[index] as unknown as Record<string, number | string>)[field] = value;
       return next;
     });
   };

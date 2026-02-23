@@ -14,7 +14,6 @@ import type {
 
 const SESSION_RUNS_TABLE = 'session_runs';
 const CALENDAR_TABLE = 'calendar';
-const SESSIONS_TABLE = 'sessions';
 const PLAYER_ROUTINE_SCORES_TABLE = 'player_routine_scores';
 const ROUTINES_TABLE = 'routines';
 
@@ -101,11 +100,16 @@ export async function listCompletedSessionRunsForPlayer(
   if (calResult.error) mapError(calResult.error);
   if (prsResult.error) mapError(prsResult.error);
 
-  type CalRow = { id: string; session_id: string; sessions: { name: string } | null };
-  const calRows = (calResult.data ?? []) as CalRow[];
+  type CalRow = {
+    id: string;
+    session_id: string;
+    sessions: { name: string } | { name: string }[] | null;
+  };
+  const calRows = (calResult.data ?? []) as unknown as CalRow[];
   const sessionNameByCalendarId = new Map<string, string>();
   for (const c of calRows) {
-    const name = c.sessions?.name ?? null;
+    const sess = c.sessions;
+    const name = Array.isArray(sess) ? sess[0]?.name ?? null : sess?.name ?? null;
     sessionNameByCalendarId.set(c.id, name ?? '');
   }
 
