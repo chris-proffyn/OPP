@@ -162,6 +162,27 @@ export async function listDartScoresForStep(
 }
 
 /**
+ * Delete all dart_scores for a step. Used when the user abandons the step (navigates back without completing).
+ * RLS: players can delete own (dart_scores_delete_own).
+ */
+export async function deleteDartScoresForStep(
+  client: SupabaseClient,
+  trainingId: string,
+  routineId: string,
+  routineNo: number,
+  stepNo: number
+): Promise<void> {
+  const { error } = await client
+    .from(DART_SCORES_TABLE)
+    .delete()
+    .eq('training_id', trainingId)
+    .eq('routine_id', routineId)
+    .eq('routine_no', routineNo)
+    .eq('step_no', stepNo);
+  if (error) mapError(error);
+}
+
+/**
  * Revert the last visit for a step: delete the last N dart_scores for (training_id, routine_id, routine_no, step_no).
  * Returns the deleted rows so the caller can e.g. update player_step_run for checkout (decrement actual_successes if that visit was a success).
  * RLS: requires player_id = current_user_player_id() (dart_scores_delete_own).

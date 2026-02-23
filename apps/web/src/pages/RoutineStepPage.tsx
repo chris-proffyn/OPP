@@ -6,7 +6,12 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { listDartScoresForStep } from '@opp/data';
+import {
+  deleteDartScoresForStep,
+  getPlayerStepRunByTrainingRoutineStep,
+  listDartScoresForStep,
+  updatePlayerStepRun,
+} from '@opp/data';
 import { useSupabase } from '../context/SupabaseContext';
 import {
   computeCheckoutBustReason,
@@ -112,6 +117,7 @@ export function RoutineStepPage() {
   const [completedVisits, setCompletedVisits] = useState<string[][]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [resetting, setResetting] = useState(false);
 
   const gameState = ctx?.gameState;
   const phase = gameState?.phase;
@@ -222,6 +228,92 @@ export function RoutineStepPage() {
     ctx?.clearVisit();
   }, [ctx]);
 
+  /** Clear step data when user leaves without completing (abandon). So next time the step is empty. */
+  const clearStepIfAbandoned = useCallback(async () => {
+    const hasProgress = completedVisits.length > 0 || vs.length > 0;
+    const stepComplete = completedVisits.length >= totalVisits;
+    if (!hasProgress || stepComplete || !supabase || !trainingId || !routineId) return;
+    try {
+      await deleteDartScoresForStep(supabase, trainingId, routineId, routineNo, stepNo);
+      if (isCheckout) {
+        const stepRun = await getPlayerStepRunByTrainingRoutineStep(
+          supabase,
+          trainingId,
+          routineId,
+          stepNo
+        );
+        if (stepRun) {
+          await updatePlayerStepRun(supabase, stepRun.id, {
+            actual_successes: 0,
+            step_score: null,
+            completed_at: null,
+          });
+        }
+      }
+    } catch (e) {
+      console.error('[RoutineStepPage] clearStepIfAbandoned:', e);
+    }
+  }, [
+    completedVisits.length,
+    vs.length,
+    totalVisits,
+    supabase,
+    trainingId,
+    routineId,
+    routineNo,
+    stepNo,
+    isCheckout,
+  ]);
+
+  const handleBackToSession = useCallback(() => {
+    void clearStepIfAbandoned().then(() => {
+      if (calendarId) navigate(`/play/session/${calendarId}`);
+      else navigate('/play');
+    });
+  }, [clearStepIfAbandoned, calendarId, navigate]);
+
+  /** Reset step: delete all dart_scores and step run data for this step, then refresh UI. */
+  const handleResetStep = useCallback(async () => {
+    if (!supabase || !trainingId || !routineId || !ctx) return;
+    if (!window.confirm('Reset this step? All visits and dart scores for this step will be deleted.')) return;
+    setResetting(true);
+    setSubmitError(null);
+    try {
+      await deleteDartScoresForStep(supabase, trainingId, routineId, routineNo, stepNo);
+      if (isCheckout) {
+        const stepRun = await getPlayerStepRunByTrainingRoutineStep(
+          supabase,
+          trainingId,
+          routineId,
+          stepNo
+        );
+        if (stepRun) {
+          await updatePlayerStepRun(supabase, stepRun.id, {
+            actual_successes: 0,
+            step_score: null,
+            completed_at: null,
+          });
+        }
+      }
+      ctx.clearVisit();
+      await refetchCompletedVisits();
+      setCompletedVisits([]);
+    } catch (e) {
+      setSubmitError(e instanceof Error ? e.message : 'Failed to reset step.');
+    } finally {
+      setResetting(false);
+    }
+  }, [
+    supabase,
+    trainingId,
+    routineId,
+    routineNo,
+    stepNo,
+    isCheckout,
+    ctx,
+    refetchCompletedVisits,
+  ]);
+
   const handleUndoLast = useCallback(() => {
     if (!ctx || vs.length === 0) return;
     ctx.undoLast();
@@ -276,14 +368,15 @@ export function RoutineStepPage() {
     <>
       <header style={compactHeaderStyle} aria-label="Step context">
         <div style={headerColStyle}>
-          <Link
-            to={calendarId ? `/play/session/${calendarId}` : '/play'}
-            style={{ ...buttonTapStyle, color: 'var(--color-text)', textDecoration: 'none' }}
+          <button
+            type="button"
+            onClick={handleBackToSession}
+            style={{ ...buttonTapStyle, color: 'var(--color-text)', textDecoration: 'none', background: 'none', border: 'none', font: 'inherit' }}
             className="tap-target"
             aria-label="Back to session"
           >
             ← Back
-          </Link>
+          </button>
         </div>
         <div style={headerColCenterStyle}>
           <p style={routineNameStyle}>{routineName}</p>
@@ -342,6 +435,15 @@ export function RoutineStepPage() {
               )}
             </>
           )}
+          <button
+            type="button"
+            onClick={() => void handleResetStep()}
+            disabled={resetting || submitting}
+            style={buttonTapStyle}
+            aria-label="Reset step (delete all visits and dart scores for this step)"
+          >
+            {resetting ? 'Resetting…' : 'Reset step'}
+          </button>
         </p>
 
         <div style={visitGridStyle} role="list" aria-label="Visit scores">

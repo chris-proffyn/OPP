@@ -8,7 +8,6 @@ import { ROUTINE_TYPES, sessionScore } from '@opp/data';
 import {
   getDartsPerStep,
   getLevelReqForStep,
-  levelToDecade,
   useSessionGameContext,
 } from '../context/SessionGameContext';
 import { useSupabase } from '../context/SupabaseContext';
@@ -49,9 +48,6 @@ export function PlaySessionPage() {
   if (gameState.phase === 'ready') {
     const { calendarEntry, sessionName, levelReqsByType, existingRun, routinesWithSteps } = gameState;
     const canResume = existingRun && !existingRun.completed_at;
-    const decade = levelToDecade(
-      player?.training_rating ?? player?.baseline_rating ?? null
-    );
     const hasAnyLevelReq = ROUTINE_TYPES.some((rt) => levelReqsByType[rt]);
     const handleStartResume = async () => {
       await startResume();
@@ -72,11 +68,6 @@ export function PlaySessionPage() {
         </section>
         {hasAnyLevelReq && (
           <section style={sectionStyle} aria-label="Level check">
-            <p>
-              <span style={labelStyle}>Your level:</span>
-              {decade}
-              {player?.training_rating != null && ` (${player.training_rating})`}
-            </p>
             <p>
               <span style={labelStyle}>Darts per step (by routine type):</span>
               {ROUTINE_TYPES.filter((rt) => levelReqsByType[rt]).map((rt) => {

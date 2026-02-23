@@ -247,6 +247,7 @@ export {
   listDartScoresForStep,
   getDartScoresForSessionRun,
   deleteDartScore,
+  deleteDartScoresForStep,
   revertLastVisit,
 } from './dart-scores';
 export {

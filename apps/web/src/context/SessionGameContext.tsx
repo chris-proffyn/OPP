@@ -140,6 +140,12 @@ function useSessionGameState(calendarId: string | undefined): SessionGameContext
       });
       return;
     }
+    // When navigating to a different session, clear stale running/ended state so we load for this calendarId
+    setGameState((prev) => {
+      if (prev.phase === 'loading') return prev;
+      if (prev.phase === 'running' && prev.calendarId === calendarId) return prev;
+      return { phase: 'loading' };
+    });
     let cancelled = false;
     (async () => {
       try {
