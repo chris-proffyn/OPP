@@ -46,8 +46,10 @@ import { LandingPage } from './pages/LandingPage';
 import { OnboardingPage } from './pages/OnboardingPage';
 import { PlayITAPage } from './pages/PlayITAPage';
 import { PlayLandingPage } from './pages/PlayLandingPage';
+import { PlaySessionDartsPage } from './pages/PlaySessionDartsPage';
 import { PlaySessionLayout } from './pages/PlaySessionLayout';
 import { PlaySessionPage } from './pages/PlaySessionPage';
+import { PlaySessionSummaryPage } from './pages/PlaySessionSummaryPage';
 import { RecordMatchPage } from './pages/RecordMatchPage';
 import { RoutineStepPage } from './pages/RoutineStepPage';
 import { ProfileCheckoutVariationsPage } from './pages/ProfileCheckoutVariationsPage';
@@ -97,6 +99,8 @@ export default function App() {
               <Route path="play/session/:calendarId" element={<PlaySessionLayout />}>
                 <Route index element={<PageWithLog name="PlaySessionPage"><PlaySessionPage /></PageWithLog>} />
                 <Route path="step" element={<PageWithLog name="RoutineStepPage"><RoutineStepPage /></PageWithLog>} />
+                <Route path="summary" element={<PageWithLog name="PlaySessionSummaryPage"><PlaySessionSummaryPage /></PageWithLog>} />
+                <Route path="summary/darts" element={<PageWithLog name="PlaySessionDartsPage"><PlaySessionDartsPage /></PageWithLog>} />
               </Route>
               <Route path="analyzer" element={<PageWithLog name="AnalyzerPage"><AnalyzerPage /></PageWithLog>} />
               <Route path="settings" element={<PageWithLog name="SettingsPage"><SettingsPage /></PageWithLog>} />

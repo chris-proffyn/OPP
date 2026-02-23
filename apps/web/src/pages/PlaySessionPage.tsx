@@ -3,7 +3,7 @@
  * State lives in SessionGameContext (§8). P4 §10: start/resume, routine loop, session end.
  */
 
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ROUTINE_TYPES, sessionScore } from '@opp/data';
 import {
   getDartsPerStep,
@@ -26,6 +26,7 @@ const buttonTapStyle: React.CSSProperties = {
 
 export function PlaySessionPage() {
   const navigate = useNavigate();
+  const { calendarId } = useParams<{ calendarId: string }>();
   const { player } = useSupabase();
   const ctx = useSessionGameContext();
   if (!ctx) return <LoadingSpinner message="Loading session…" />;
@@ -46,12 +47,16 @@ export function PlaySessionPage() {
   }
 
   if (gameState.phase === 'ready') {
-    const { calendarEntry, sessionName, levelReqsByType, existingRun } = gameState;
+    const { calendarEntry, sessionName, levelReqsByType, existingRun, routinesWithSteps } = gameState;
     const canResume = existingRun && !existingRun.completed_at;
     const decade = levelToDecade(
       player?.training_rating ?? player?.baseline_rating ?? null
     );
     const hasAnyLevelReq = ROUTINE_TYPES.some((rt) => levelReqsByType[rt]);
+    const handleStartResume = async () => {
+      await startResume();
+      if (calendarId) navigate(`/play/session/${calendarId}/step`);
+    };
     return (
       <div>
         <h1>{sessionName}</h1>
@@ -83,13 +88,26 @@ export function PlaySessionPage() {
             </p>
           </section>
         )}
+        {routinesWithSteps.length > 0 && (
+          <section style={sectionStyle} aria-label="Routines in this session">
+            <p>
+              <span style={labelStyle}>Routines:</span>
+              {routinesWithSteps.map((r, i) => (
+                <span key={r.routine.id}>
+                  {i + 1}. {r.routine.name}
+                  {i < routinesWithSteps.length - 1 ? ' · ' : ''}
+                </span>
+              ))}
+            </p>
+          </section>
+        )}
         <section style={sectionStyle}>
           {canResume ? (
-            <button type="button" onClick={startResume} style={buttonTapStyle}>
+            <button type="button" onClick={handleStartResume} style={buttonTapStyle}>
               Resume
             </button>
           ) : (
-            <button type="button" onClick={startResume} style={buttonTapStyle}>
+            <button type="button" onClick={handleStartResume} style={buttonTapStyle}>
               Start
             </button>
           )}

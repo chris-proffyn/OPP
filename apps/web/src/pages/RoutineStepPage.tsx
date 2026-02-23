@@ -144,9 +144,10 @@ export function RoutineStepPage() {
     });
   }, [supabase, trainingId, routineId, routineNo, stepNo]);
 
-  // Sync completed visits from DB for display (context only holds current visitSelections)
+  // Clear and refetch completed visits when step identity changes so we never show previous step's data
   useEffect(() => {
     if (!supabase || !trainingId || !routineId) return;
+    setCompletedVisits([]);
     let cancelled = false;
     listDartScoresForStep(supabase, trainingId, routineId, routineNo, stepNo).then((rows) => {
       if (cancelled) return;
@@ -235,11 +236,12 @@ export function RoutineStepPage() {
         ? await ctx.submitVisit()
         : await ctx.submitCurrentVisit();
       refetchCompletedVisits();
-      if (result?.sessionComplete || result?.stepComplete) {
+      if (result?.sessionComplete) {
         navigate(`/play/session/${calendarId}`, { state: { returnFromStepComplete: true } });
       } else if (result?.nextAttemptIndex != null) {
         navigate(`/play/session/${calendarId}/step`, { replace: true });
       }
+      // When stepComplete && !sessionComplete we stay on this page; context already advanced to next step
     } catch (e) {
       setSubmitError(e instanceof Error ? e.message : 'Failed to save visit.');
     } finally {

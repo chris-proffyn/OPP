@@ -1,5 +1,5 @@
 /**
- * Shell for authenticated + player routes. Logo links to home; nav has Play, Stats (icons), Admin if admin, and a hamburger menu (Profile, Settings, Sign out).
+ * Shell for authenticated + player routes. Logo links to home; nav has Play, Stats (icons), Hamburger next to Stats, Admin if admin, and avatar (initials + level) on the right.
  * Use with AuthGuard and PlayerGuard so only reachable when authenticated and player exists.
  */
 
@@ -42,6 +42,89 @@ const mainStyle: React.CSSProperties = {
   padding: '1.5rem',
 };
 
+/** Two letters from nickname (or "?"), uppercased. */
+function getInitials(nickname: string | null | undefined): string {
+  const s = (nickname ?? '').trim();
+  if (s.length >= 2) return s.slice(0, 2).toUpperCase();
+  if (s.length === 1) return (s + s).toUpperCase();
+  return '?';
+}
+
+/** Display level from training_rating or baseline_rating. */
+function getDisplayLevel(
+  trainingRating: number | null | undefined,
+  baselineRating: number | null | undefined
+): string {
+  const n = trainingRating ?? baselineRating ?? 0;
+  return String(Math.round(n));
+}
+
+/** Avatar: main circle with initials + overlapping badge with level. */
+function PlayerAvatar({
+  initials,
+  level,
+  size = 40,
+}: {
+  initials: string;
+  level: string;
+  size?: number;
+}) {
+  const badgeSize = Math.round(size * 0.5);
+  const badgeOffset = Math.round(size * -0.15);
+  return (
+    <span
+      style={{
+        position: 'relative',
+        display: 'inline-flex',
+        flexShrink: 0,
+        width: size,
+        height: size,
+      }}
+      aria-hidden
+    >
+      <span
+        style={{
+          width: size,
+          height: size,
+          borderRadius: '50%',
+          backgroundColor: 'var(--color-avatar-bg, #166534)',
+          color: 'var(--color-avatar-fg, #facc15)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: Math.round(size * 0.4),
+          fontWeight: 700,
+          lineHeight: 1,
+        }}
+      >
+        {initials}
+      </span>
+      <span
+        style={{
+          position: 'absolute',
+          top: badgeOffset,
+          right: badgeOffset,
+          width: badgeSize,
+          height: badgeSize,
+          borderRadius: '50%',
+          backgroundColor: 'var(--color-avatar-badge-bg, #facc15)',
+          color: 'var(--color-avatar-badge-fg, #166534)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: Math.round(badgeSize * 0.55),
+          fontWeight: 700,
+          lineHeight: 1,
+          border: '2px solid var(--color-bg, #fff)',
+          boxSizing: 'border-box',
+        }}
+      >
+        {level}
+      </span>
+    </span>
+  );
+}
+
 /** Three horizontal lines icon for hamburger. */
 function HamburgerIcon({ open }: { open: boolean }) {
   return (
@@ -74,31 +157,43 @@ export function AuthenticatedLayout() {
             <OppStatsIcon width={24} height={24} style={{ display: 'block', width: 24, height: 24 }} />
           </NavIcon>
         </Link>
+        <button
+          type="button"
+          onClick={() => setMenuOpen((o) => !o)}
+          aria-expanded={menuOpen}
+          aria-haspopup="true"
+          aria-label="Open menu"
+          style={{
+            minHeight: 'var(--tap-min, 44px)',
+            minWidth: 'var(--tap-min, 44px)',
+            padding: '0.5rem 0.75rem',
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'transparent',
+            border: 'none',
+            color: 'var(--color-text)',
+          }}
+        >
+          <HamburgerIcon open={menuOpen} />
+        </button>
         {player?.role === 'admin' && (
           <Link to="/admin" style={linkStyle}>Admin</Link>
         )}
-        <span style={{ marginLeft: 'auto' }}>
-          <button
-            type="button"
-            onClick={() => setMenuOpen((o) => !o)}
-            aria-expanded={menuOpen}
-            aria-haspopup="true"
-            aria-label="Open menu"
-            style={{
-              minHeight: 'var(--tap-min, 44px)',
-              minWidth: 'var(--tap-min, 44px)',
-              padding: '0.5rem 0.75rem',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--color-text)',
-            }}
-          >
-            <HamburgerIcon open={menuOpen} />
-          </button>
+        <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
+          {player && (
+            <span
+              title={`${player.nickname ?? 'Player'}, level ${getDisplayLevel(player.training_rating, player.baseline_rating)}`}
+              aria-label={`${player.nickname ?? 'Player'}, level ${getDisplayLevel(player.training_rating, player.baseline_rating)}`}
+            >
+              <PlayerAvatar
+                initials={getInitials(player.nickname)}
+                level={getDisplayLevel(player.training_rating, player.baseline_rating)}
+                size={40}
+              />
+            </span>
+          )}
           {menuOpen && (
             <div
               role="menu"
