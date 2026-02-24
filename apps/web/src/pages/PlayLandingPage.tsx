@@ -226,6 +226,7 @@ export function PlayLandingPage() {
       const t = setTimeout(() => setShowSoloSuccess(false), 6000);
       return () => clearTimeout(t);
     }
+    return undefined;
   }, [location.state, navigate]);
 
   // Direct to ITA when player has not completed ITA (admins can still see play list). OPP_ITA §3; message per OPP_ITA_UPDATE §2.
