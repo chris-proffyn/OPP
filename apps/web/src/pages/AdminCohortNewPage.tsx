@@ -13,6 +13,7 @@ export function AdminCohortNewPage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [scheduleId, setScheduleId] = useState('');
+  const [competitionsEnabled, setCompetitionsEnabled] = useState(false);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +45,7 @@ export function AdminCohortNewPage() {
         start_date: startDate,
         end_date: endDate,
         schedule_id: scheduleId,
+        competitions_enabled: competitionsEnabled,
       });
       navigate(`/admin/cohorts/${cohort.id}`);
     } catch (err) {
@@ -121,6 +123,20 @@ export function AdminCohortNewPage() {
               <option key={s.id} value={s.id}>{s.name}</option>
             ))}
           </select>
+        </div>
+        <div style={{ marginBottom: '0.75rem' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={competitionsEnabled}
+              onChange={(e) => setCompetitionsEnabled(e.target.checked)}
+              disabled={submitting}
+            />
+            Competitions enabled
+          </label>
+          <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', color: 'var(--color-muted, #666)' }}>
+            When enabled, this cohort can have competitions and match recording.
+          </p>
         </div>
         {error && <p role="alert" style={{ color: '#c00', marginBottom: '0.5rem' }}>{error}</p>}
         <button type="submit" disabled={submitting}>

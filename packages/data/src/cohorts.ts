@@ -57,7 +57,7 @@ export async function listCohorts(client: SupabaseClient): Promise<Cohort[]> {
   await requireAdmin(client);
   const { data, error } = await client
     .from(COHORTS_TABLE)
-    .select('id, name, level, start_date, end_date, schedule_id, created_at, updated_at')
+    .select('id, name, level, start_date, end_date, schedule_id, competitions_enabled, created_at, updated_at')
     .order('created_at', { ascending: false });
   if (error) mapError(error);
   return (data ?? []) as Cohort[];
@@ -116,6 +116,7 @@ export async function createCohort(
       start_date: payload.start_date,
       end_date: payload.end_date,
       schedule_id: payload.schedule_id,
+      ...(payload.competitions_enabled !== undefined && { competitions_enabled: payload.competitions_enabled }),
     })
     .select()
     .single();
@@ -138,6 +139,7 @@ export async function updateCohort(
   if (payload.start_date !== undefined) updates.start_date = payload.start_date;
   if (payload.end_date !== undefined) updates.end_date = payload.end_date;
   if (payload.schedule_id !== undefined) updates.schedule_id = payload.schedule_id;
+  if (payload.competitions_enabled !== undefined) updates.competitions_enabled = payload.competitions_enabled;
   const start = updates.start_date as string | undefined;
   const end = updates.end_date as string | undefined;
   if (start !== undefined || end !== undefined) {

@@ -1,6 +1,7 @@
 /**
  * Catches React render errors and shows a fallback UI instead of a blank screen.
  * Use around router or layout content to handle DOM/reconciliation errors (e.g. removeChild).
+ * Suppresses console noise from browser extensions (e.g. React DevTools installHook).
  */
 
 import { Component, type ErrorInfo, type ReactNode } from 'react';
@@ -8,14 +9,30 @@ import { Component, type ErrorInfo, type ReactNode } from 'react';
 type Props = { children: ReactNode; fallback?: ReactNode };
 type State = { hasError: boolean; error?: Error };
 
+/** Only suppress errors that clearly originate from browser extensions (e.g. React DevTools). */
+function isLikelyExtensionError(error: Error): boolean {
+  const stack = error?.stack ?? '';
+  // Never suppress if the stack references our app (localhost, src, chunks, or source files).
+  const hasAppInStack =
+    /localhost:\d+/.test(stack) ||
+    /\/src\//.test(stack) ||
+    /\/assets\/|chunk-[A-Za-z0-9]+\.js/i.test(stack) ||
+    /\.(tsx?|jsx?)(:\d+)?/.test(stack);
+  if (hasAppInStack) return false;
+  // Only suppress when the stack is clearly from an extension (not just installHook, which appears in app errors).
+  return /chrome-extension:|moz-extension:/i.test(stack);
+}
+
 export class ErrorBoundary extends Component<Props, State> {
   state: State = { hasError: false };
 
   static getDerivedStateFromError(error: Error): State {
+    if (isLikelyExtensionError(error)) return { hasError: false };
     return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
+    if (isLikelyExtensionError(error)) return;
     console.error('[OPP ErrorBoundary]', error, info.componentStack);
   }
 

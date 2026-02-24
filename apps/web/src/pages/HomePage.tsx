@@ -10,19 +10,50 @@ import {
   getCurrentCohortForPlayer,
   getNextCompetitionForPlayer,
   getNextSessionForPlayer,
-  getRecentSessionScoresForPlayer,
 } from '@opp/data';
 import type { Cohort, Competition } from '@opp/data';
 import type { NextOrAvailableSession } from '@opp/data';
-import type { RecentSessionScore } from '@opp/data';
 import { useSupabase } from '../context/SupabaseContext';
 import { hasCompletedITA } from '../utils/ita';
-import { computeTRTrend } from '../utils/trTrend';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorMessage } from '../components/ErrorMessage';
 
 const sectionStyle: React.CSSProperties = { marginBottom: '1.5rem' };
-const labelStyle: React.CSSProperties = { fontWeight: 600, marginRight: '0.5rem' };
+const gridStyle: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: '7rem 1fr',
+  gap: '0.25rem 1rem',
+  alignItems: 'baseline',
+  maxWidth: '100%',
+};
+const sectionLabelStyle: React.CSSProperties = {
+  fontSize: '0.85rem',
+  fontWeight: 600,
+  color: 'var(--color-muted, #6b7280)',
+};
+const mainValueStyle: React.CSSProperties = { fontSize: '1.15rem', fontWeight: 700 };
+const secondaryStyle: React.CSSProperties = {
+  fontSize: '0.85rem',
+  color: 'var(--color-muted, #6b7280)',
+  marginTop: '0.15rem',
+};
+const startSessionButtonStyle: React.CSSProperties = {
+  marginTop: '0.5rem',
+  padding: '0.5rem 1rem',
+  minHeight: 'var(--tap-min, 44px)',
+  fontWeight: 600,
+  fontSize: '1rem',
+  cursor: 'pointer',
+  borderRadius: 6,
+  border: '1px solid var(--color-border, #374151)',
+  backgroundColor: 'var(--color-primary, #3b82f6)',
+  color: 'white',
+  textDecoration: 'none',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  boxSizing: 'border-box',
+};
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -39,7 +70,6 @@ export function HomePage() {
   const [cohort, setCohort] = useState<Cohort | null>(null);
   const [nextSession, setNextSession] = useState<NextOrAvailableSession | null>(null);
   const [nextCompetition, setNextCompetition] = useState<Competition | null>(null);
-  const [recentScores, setRecentScores] = useState<RecentSessionScore[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryTrigger, setRetryTrigger] = useState(0);
@@ -54,17 +84,15 @@ export function HomePage() {
     setError(null);
     (async () => {
       try {
-        const [cohortRes, nextRes, nextCompRes, scoresRes] = await Promise.all([
+        const [cohortRes, nextRes, nextCompRes] = await Promise.all([
           getCurrentCohortForPlayer(supabase, player.id),
           getNextSessionForPlayer(supabase, player.id),
           getNextCompetitionForPlayer(supabase, player.id),
-          getRecentSessionScoresForPlayer(supabase, player.id, 4),
         ]);
         if (cancelled) return;
         setCohort(cohortRes ?? null);
         setNextSession(nextRes ?? null);
         setNextCompetition(nextCompRes ?? null);
-        setRecentScores(scoresRes ?? []);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Dashboard could not be loaded. Try again.');
       } finally {
@@ -76,14 +104,7 @@ export function HomePage() {
     };
   }, [supabase, player?.id, retryTrigger]);
 
-  const tr = player?.training_rating;
-  const trDisplay = tr != null ? String(tr) : '—';
   const prDisplay = player?.player_rating != null ? String(player.player_rating) : '—';
-  const mrDisplay = player?.match_rating != null ? String(player.match_rating) : 'N/A';
-  const trend = computeTRTrend(recentScores);
-  const trendSymbol = trend === 'up' ? '↑' : trend === 'down' ? '↓' : trend === 'stable' ? '→' : '';
-  const trendLabel =
-    trend === 'up' ? 'Trend: improving' : trend === 'down' ? 'Trend: declining' : trend === 'stable' ? 'Trend: stable' : '';
 
   if (loading) {
     return <LoadingSpinner message="Loading dashboard…" />;
@@ -135,88 +156,81 @@ export function HomePage() {
       )}
 
       <section style={sectionStyle} aria-label="Profile">
-        <h2 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>Profile</h2>
-        {player?.avatar_url ? (
-          <p>
-            <img src={player.avatar_url} alt="" width={48} height={48} style={{ borderRadius: 4, marginRight: '0.5rem', verticalAlign: 'middle' }} />
-            <span>{player?.nickname ?? '—'}</span>
-          </p>
-        ) : (
-          <p>{player?.nickname ?? '—'}</p>
-        )}
+        <div style={gridStyle}>
+          <span style={sectionLabelStyle}>Profile</span>
+          <div>
+            {player?.avatar_url && (
+              <img src={player.avatar_url} alt="" width={48} height={48} style={{ borderRadius: 4, marginRight: '0.5rem', verticalAlign: 'middle' }} />
+            )}
+            <span style={mainValueStyle}>{player?.nickname ?? '—'}</span>
+            <div style={secondaryStyle}>Level: {prDisplay}</div>
+          </div>
+        </div>
       </section>
 
       <section style={sectionStyle} aria-label="Cohort">
-        <h2 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>Cohort</h2>
-        {cohort ? (
-          <p>
-            <span style={labelStyle}>{cohort.name}</span>
-            {formatDate(cohort.start_date)} – {formatDate(cohort.end_date)}
-          </p>
-        ) : (
-          <p>No cohort</p>
-        )}
+        <div style={gridStyle}>
+          <span style={sectionLabelStyle}>Cohort</span>
+          <div>
+            {cohort ? (
+              <>
+                <span style={mainValueStyle}>{cohort.name}</span>
+                <div style={secondaryStyle}>
+                  {formatDate(cohort.start_date)} – {formatDate(cohort.end_date)}
+                </div>
+              </>
+            ) : (
+              <span style={mainValueStyle}>No cohort</span>
+            )}
+          </div>
+        </div>
       </section>
 
       <section style={sectionStyle} aria-label="Up next">
-        <h2 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>Up next</h2>
-        {showCompleteITA ? (
-          <p>
-            Complete your Initial Training Assessment (ITA) before training.
-            <br />
-            <Link to="/play/ita" className="tap-target" style={{ display: 'inline-flex' }}>Start ITA</Link>
-          </p>
-        ) : nextSession ? (
-          <p>
-            Up next: Day {nextSession.day_no} — {nextSession.session_name} on {formatDateTime(nextSession.scheduled_at)}
-            {cohort && (
+        <div style={gridStyle}>
+          <span style={sectionLabelStyle}>Up Next</span>
+          <div>
+            {showCompleteITA ? (
               <>
-                <br />
-                <span style={{ fontSize: '0.9rem', color: 'var(--muted, #666)' }}>{cohort.name}</span>
+                <span style={mainValueStyle}>Complete ITA</span>
+                <div style={secondaryStyle}>Required before training</div>
+                <Link to="/play/ita" className="tap-target" style={{ ...startSessionButtonStyle, marginTop: '0.5rem' }}>Start ITA</Link>
               </>
+            ) : nextSession ? (
+              <>
+                <span style={mainValueStyle}>{nextSession.session_name}</span>
+                <div style={secondaryStyle}>{formatDateTime(nextSession.scheduled_at)}</div>
+                <Link to={`/play/session/${nextSession.calendar_id}`} className="tap-target" style={startSessionButtonStyle} role="button">
+                  Start session
+                </Link>
+              </>
+            ) : (
+              <span style={mainValueStyle}>No upcoming session</span>
             )}
-            <br />
-            <Link to={`/play/session/${nextSession.calendar_id}`} className="tap-target" style={{ display: 'inline-flex' }}>Start session</Link>
-          </p>
-        ) : (
-          <p>No upcoming session</p>
-        )}
+          </div>
+        </div>
       </section>
 
-      <section style={sectionStyle} aria-label="Next competition">
-        <h2 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>Next competition</h2>
-        {nextCompetition?.scheduled_at ? (
-          <p>
-            {formatDateTime(nextCompetition.scheduled_at)} — {nextCompetition.name}
-            <br />
-            <Link to="/play/record-match" className="tap-target" style={{ display: 'inline-flex' }}>Record match</Link>
-          </p>
-        ) : (
-          <p>—</p>
-        )}
-      </section>
-
-      <section style={sectionStyle} aria-label="Ratings">
-        <h2 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>Ratings</h2>
-        <p>
-          <span style={labelStyle}>PR:</span> {prDisplay}
-          <span style={{ marginLeft: '1rem' }}>
-            <span style={labelStyle}>TR:</span> {trDisplay}
-            {trendSymbol && (
-              <span aria-label={trendLabel} title={trendLabel} style={{ marginLeft: '0.25rem' }}>
-                {trendSymbol}
-              </span>
-            )}
-          </span>
-          <span style={{ marginLeft: '1rem' }}>
-            <span style={labelStyle}>MR:</span> {mrDisplay}
-          </span>
-        </p>
-      </section>
-
-      <section style={sectionStyle}>
-        <Link to="/analyzer" className="tap-target" style={{ display: 'inline-flex' }}>View performance</Link>
-      </section>
+      {cohort?.competitions_enabled && (
+        <section style={sectionStyle} aria-label="Next competition">
+          <div style={gridStyle}>
+            <span style={sectionLabelStyle}>Next competition</span>
+            <div>
+              {nextCompetition?.scheduled_at ? (
+                <>
+                  <span style={mainValueStyle}>{nextCompetition.name}</span>
+                  <div style={secondaryStyle}>{formatDateTime(nextCompetition.scheduled_at)}</div>
+                  <Link to="/play/record-match" className="tap-target" style={{ ...startSessionButtonStyle, marginTop: '0.5rem' }} role="button">
+                    Record match
+                  </Link>
+                </>
+              ) : (
+                <span style={secondaryStyle}>—</span>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
     </>
   );
 }

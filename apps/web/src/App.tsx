@@ -50,6 +50,7 @@ import { PlayLandingPage } from './pages/PlayLandingPage';
 import { PlaySessionDartsPage } from './pages/PlaySessionDartsPage';
 import { PlaySessionLayout } from './pages/PlaySessionLayout';
 import { PlaySessionPage } from './pages/PlaySessionPage';
+import { PlaySoloNewPage } from './pages/PlaySoloNewPage';
 import { PlaySessionSummaryPage } from './pages/PlaySessionSummaryPage';
 import { RecordMatchPage } from './pages/RecordMatchPage';
 import { RoutineStepPage } from './pages/RoutineStepPage';
@@ -96,6 +97,7 @@ export default function App() {
               <Route path="profile/checkout-variations" element={<PageWithLog name="ProfileCheckoutVariationsPage"><ProfileCheckoutVariationsPage /></PageWithLog>} />
               <Route path="play" element={<PageWithLog name="PlayLandingPage"><PlayLandingPage /></PageWithLog>} />
               <Route path="play/ita" element={<PageWithLog name="PlayITAPage"><PlayITAPage /></PageWithLog>} />
+              <Route path="play/solo/new" element={<PageWithLog name="PlaySoloNewPage"><PlaySoloNewPage /></PageWithLog>} />
               <Route path="play/record-match" element={<PageWithLog name="RecordMatchPage"><RecordMatchPage /></PageWithLog>} />
               <Route path="play/session/:calendarId" element={<PlaySessionLayout />}>
                 <Route index element={<PageWithLog name="PlaySessionPage"><PlaySessionPage /></PageWithLog>} />

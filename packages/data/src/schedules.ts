@@ -59,6 +59,46 @@ export async function listSchedules(client: SupabaseClient): Promise<Schedule[]>
 }
 
 /**
+ * List all schedules for solo training schedule picker. Authenticated users (RLS: schedules_select_authenticated).
+ */
+export async function listSchedulesForSolo(client: SupabaseClient): Promise<Schedule[]> {
+  const { data, error } = await client
+    .from(SCHEDULES_TABLE)
+    .select('id, name, created_at, updated_at');
+  if (error) mapError(error);
+  return (data ?? []) as Schedule[];
+}
+
+/**
+ * Get schedule by id with entries. For solo calendar generation. Authenticated users (RLS).
+ */
+export async function getScheduleByIdForSolo(
+  client: SupabaseClient,
+  scheduleId: string
+): Promise<{ schedule: Schedule; entries: ScheduleEntry[] } | null> {
+  const { data: scheduleRow, error: scheduleError } = await client
+    .from(SCHEDULES_TABLE)
+    .select('*')
+    .eq('id', scheduleId)
+    .maybeSingle();
+  if (scheduleError) mapError(scheduleError);
+  if (!scheduleRow) return null;
+
+  const { data: entries, error: entriesError } = await client
+    .from(SCHEDULE_ENTRIES_TABLE)
+    .select('*')
+    .eq('schedule_id', scheduleId)
+    .order('day_no', { ascending: true })
+    .order('session_no', { ascending: true });
+  if (entriesError) mapError(entriesError);
+
+  return {
+    schedule: scheduleRow as Schedule,
+    entries: (entries ?? []) as ScheduleEntry[],
+  };
+}
+
+/**
  * Get schedule by id with entries ordered by day_no, session_no. Returns null if not found. Admin only.
  */
 export async function getScheduleById(

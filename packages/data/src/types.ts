@@ -285,6 +285,8 @@ export interface Cohort {
   start_date: string;
   end_date: string;
   schedule_id: string;
+  /** When true, competitions are enabled for this cohort; when false, competitions are disabled. */
+  competitions_enabled: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -326,6 +328,7 @@ export interface CreateCohortPayload {
   start_date: string;
   end_date: string;
   schedule_id: string;
+  competitions_enabled?: boolean;
 }
 
 export interface UpdateCohortPayload {
@@ -334,6 +337,7 @@ export interface UpdateCohortPayload {
   start_date?: string;
   end_date?: string;
   schedule_id?: string;
+  competitions_enabled?: boolean;
 }
 
 export interface GenerateCalendarOptions {

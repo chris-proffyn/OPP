@@ -19,7 +19,7 @@ import { useSupabase } from '../context/SupabaseContext';
 export function AdminCohortEditPage() {
   const { supabase } = useSupabase();
   const { id } = useParams<{ id: string }>();
-  const [cohort, setCohort] = useState<{ cohort: { id: string; name: string; level: number; start_date: string; end_date: string; schedule_id: string }; schedule_name: string | null; member_count: number } | null>(null);
+  const [cohort, setCohort] = useState<{ cohort: { id: string; name: string; level: number; start_date: string; end_date: string; schedule_id: string; competitions_enabled?: boolean }; schedule_name: string | null; member_count: number } | null>(null);
   const [members, setMembers] = useState<CohortMemberWithPlayer[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
@@ -28,6 +28,7 @@ export function AdminCohortEditPage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [scheduleId, setScheduleId] = useState('');
+  const [competitionsEnabled, setCompetitionsEnabled] = useState(true);
   const [addPlayerId, setAddPlayerId] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -56,6 +57,7 @@ export function AdminCohortEditPage() {
           setStartDate(cohortData.cohort.start_date);
           setEndDate(cohortData.cohort.end_date);
           setScheduleId(cohortData.cohort.schedule_id);
+          setCompetitionsEnabled(cohortData.cohort.competitions_enabled !== false);
           setMembers(memberList);
         } else {
           setNotFound(true);
@@ -81,7 +83,7 @@ export function AdminCohortEditPage() {
     setError(null);
     setSubmitting(true);
     try {
-      await updateCohort(supabase, id, { name, level, start_date: startDate, end_date: endDate, schedule_id: scheduleId });
+      await updateCohort(supabase, id, { name, level, start_date: startDate, end_date: endDate, schedule_id: scheduleId, competitions_enabled: competitionsEnabled });
       load();
     } catch (err) {
       setError(isDataError(err) ? err.message : 'Failed to save cohort.');
@@ -175,6 +177,20 @@ export function AdminCohortEditPage() {
           <select id="cohort-schedule" value={scheduleId} onChange={(e) => setScheduleId(e.target.value)} required disabled={submitting} style={{ minWidth: '14rem', padding: '0.35rem' }}>
             {schedules.map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
           </select>
+        </div>
+        <div style={{ marginBottom: '0.75rem' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={competitionsEnabled}
+              onChange={(e) => setCompetitionsEnabled(e.target.checked)}
+              disabled={submitting}
+            />
+            Competitions enabled
+          </label>
+          <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', color: 'var(--color-muted, #666)' }}>
+            When enabled, this cohort can have competitions and match recording.
+          </p>
         </div>
         {error && <p role="alert" style={{ color: '#c00', marginBottom: '0.5rem' }}>{error}</p>}
         <button type="submit" disabled={submitting}>{submitting ? 'Saving…' : 'Save'}</button>

@@ -145,7 +145,7 @@ export function AuthenticatedLayout() {
     <div style={layoutStyle}>
       <nav style={{ ...navStyle, ...(menuOpen ? { zIndex: 100 } : {}) }} aria-label="Main">
         <Link to="/home" style={{ ...linkStyle, display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }} aria-label="Home">
-          <OppLogo size={44} />
+          <OppLogo size={64} />
         </Link>
         <Link to="/play" style={linkStyle} aria-label="Play">
           <NavIcon size={24}>

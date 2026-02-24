@@ -89,6 +89,7 @@ export function AdminCohortsPage() {
             <th style={thTdStyle}>Start</th>
             <th style={thTdStyle}>End</th>
             <th style={thTdStyle}>Schedule</th>
+            <th style={thTdStyle}>Competitions</th>
             <th style={thTdStyle}>Members</th>
             <th style={thTdStyle}></th>
           </tr>
@@ -101,6 +102,7 @@ export function AdminCohortsPage() {
               <td style={thTdStyle}>{c.start_date}</td>
               <td style={thTdStyle}>{c.end_date}</td>
               <td style={thTdStyle}>{scheduleMap[c.schedule_id] ?? c.schedule_id}</td>
+              <td style={thTdStyle}>{c.competitions_enabled !== false ? 'Yes' : 'No'}</td>
               <td style={thTdStyle}>{memberCounts[c.id] ?? 0}</td>
               <td style={thTdStyle}>
                 <Link to={`/admin/cohorts/${c.id}`}>Edit</Link>

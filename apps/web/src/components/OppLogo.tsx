@@ -10,6 +10,8 @@ const wrapperStyle: React.CSSProperties = {
   flexShrink: 0,
 };
 
+const logoSrc = `${import.meta.env.BASE_URL}opp-logo.svg`;
+
 export function OppLogo({ size = 32, alt = '' }: { size?: number; alt?: string }) {
   return (
     <span
@@ -18,16 +20,23 @@ export function OppLogo({ size = 32, alt = '' }: { size?: number; alt?: string }
         ...wrapperStyle,
         width: size,
         height: size,
+        minWidth: size,
+        minHeight: size,
       }}
       aria-hidden={!alt}
     >
       <img
-        src="/opp-logo.svg"
+        src={logoSrc}
         alt={alt}
         width={size}
         height={size}
         className="opp-logo-img"
-        style={{ display: 'block', width: size, height: size }}
+        style={{
+          display: 'block',
+          width: size,
+          height: size,
+          objectFit: 'contain',
+        }}
       />
     </span>
   );

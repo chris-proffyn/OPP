@@ -108,7 +108,9 @@ export {
 } from './players';
 export {
   listSchedules,
+  listSchedulesForSolo,
   getScheduleById,
+  getScheduleByIdForSolo,
   createSchedule,
   updateSchedule,
   deleteSchedule,
@@ -207,6 +209,8 @@ export {
   updateCalendarEntry,
 } from './calendar';
 export type { CalendarWithSessionName, CalendarEntryWithDetails } from './calendar';
+export { createSoloTrainingCohort } from './solo-training';
+export type { CreateSoloTrainingCohortPayload } from './solo-training';
 export {
   listPlayerCalendar,
   getNextSessionForPlayer,
