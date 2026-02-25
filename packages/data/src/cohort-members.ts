@@ -4,12 +4,28 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { DataError } from './errors';
-import { getCurrentPlayer } from './players';
-import type { Cohort, CohortMember } from './types';
+import { getCurrentPlayer, listPlayers } from './players';
+import type { Cohort, CohortMember, CohortStatus, Player } from './types';
 
 const COHORT_MEMBERS_TABLE = 'cohort_members';
 const COHORTS_TABLE = 'cohorts';
 const PGRST_NO_ROWS = 'PGRST116';
+
+const EDITABLE_COHORT_STATUSES: CohortStatus[] = ['draft', 'proposed'];
+
+async function requireCohortEditable(client: SupabaseClient, cohortId: string): Promise<void> {
+  const { data, error } = await client
+    .from(COHORTS_TABLE)
+    .select('cohort_status')
+    .eq('id', cohortId)
+    .maybeSingle();
+  if (error) mapError(error);
+  if (!data) throw new DataError('Cohort not found', 'NOT_FOUND');
+  const status = (data as { cohort_status: CohortStatus }).cohort_status;
+  if (!EDITABLE_COHORT_STATUSES.includes(status)) {
+    throw new DataError(`Cohort is ${status}; member list cannot be changed. Only draft or proposed cohorts can be edited.`, 'VALIDATION');
+  }
+}
 
 function requireAdmin(client: SupabaseClient): Promise<void> {
   return getCurrentPlayer(client).then((current) => {
@@ -136,7 +152,29 @@ export async function getCurrentCohortForPlayer(
 }
 
 /**
+ * List players who have no row in cohort_members (awaiting cohort assignment). Admin only.
+ * Includes player_rating and training_rating for display. Ordered by training_rating (desc, nulls last) then nickname.
+ */
+export async function listPlayersWithoutCohort(client: SupabaseClient): Promise<Player[]> {
+  await requireAdmin(client);
+  const [allPlayers, { data: memberRows }] = await Promise.all([
+    listPlayers(client),
+    client.from(COHORT_MEMBERS_TABLE).select('player_id'),
+  ]);
+  const memberIds = new Set(((memberRows ?? []) as { player_id: string }[]).map((r) => r.player_id));
+  const without = allPlayers.filter((p) => !memberIds.has(p.id));
+  without.sort((a, b) => {
+    const ar = a.training_rating ?? -1;
+    const br = b.training_rating ?? -1;
+    if (br !== ar) return br - ar;
+    return (a.nickname ?? '').localeCompare(b.nickname ?? '');
+  });
+  return without;
+}
+
+/**
  * Add a player to a cohort. Throws CONFLICT if player is already in another active cohort. Admin only.
+ * Only allowed when cohort is draft or proposed.
  */
 export async function addCohortMember(
   client: SupabaseClient,
@@ -144,6 +182,7 @@ export async function addCohortMember(
   playerId: string
 ): Promise<CohortMember> {
   await requireAdmin(client);
+  await requireCohortEditable(client, cohortId);
   const current = await getCurrentCohortForPlayer(client, playerId);
   if (current && current.id !== cohortId) {
     throw new DataError(
@@ -167,6 +206,7 @@ export async function addCohortMember(
 
 /**
  * Remove a player from a cohort. Throws NOT_FOUND if no such membership. Admin only.
+ * Only allowed when cohort is draft or proposed. If cohort has no members left, status is set back to draft.
  */
 export async function removeCohortMember(
   client: SupabaseClient,
@@ -174,6 +214,7 @@ export async function removeCohortMember(
   playerId: string
 ): Promise<void> {
   await requireAdmin(client);
+  await requireCohortEditable(client, cohortId);
   const { data, error } = await client
     .from(COHORT_MEMBERS_TABLE)
     .delete()
@@ -184,4 +225,34 @@ export async function removeCohortMember(
   if (!data || data.length === 0) {
     throw new DataError('Cohort member not found', 'NOT_FOUND');
   }
+  const { count } = await client
+    .from(COHORT_MEMBERS_TABLE)
+    .select('id', { count: 'exact', head: true })
+    .eq('cohort_id', cohortId);
+  if ((count ?? 0) === 0) {
+    await client.from(COHORTS_TABLE).update({ cohort_status: 'draft' }).eq('id', cohortId);
+  }
+}
+
+/**
+ * Move a player from one cohort to another. Both cohorts must be draft or proposed. Admin only.
+ */
+export async function movePlayerToCohort(
+  client: SupabaseClient,
+  playerId: string,
+  fromCohortId: string,
+  toCohortId: string
+): Promise<void> {
+  await requireAdmin(client);
+  if (fromCohortId === toCohortId) {
+    throw new DataError('Source and target cohort must be different', 'VALIDATION');
+  }
+  await requireCohortEditable(client, fromCohortId);
+  await requireCohortEditable(client, toCohortId);
+  const toMembers = await listCohortMembers(client, toCohortId);
+  if (toMembers.some((m) => m.player_id === playerId)) {
+    throw new DataError('Player is already in the target cohort', 'CONFLICT');
+  }
+  await removeCohortMember(client, fromCohortId, playerId);
+  await addCohortMember(client, toCohortId, playerId);
 }

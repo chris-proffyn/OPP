@@ -5,6 +5,7 @@ import { AuthGuard } from './components/AuthGuard';
 import { AuthenticatedLayout } from './components/AuthenticatedLayout';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { PlayerGuard } from './components/PlayerGuard';
+import { AppConfigProvider } from './context/AppConfigContext';
 import { SupabaseProvider } from './context/SupabaseContext';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { AdminLayoutPage } from './pages/AdminLayoutPage';
@@ -31,6 +32,7 @@ import { AdminCompetitionEditPage } from './pages/AdminCompetitionEditPage';
 import { AdminCompetitionNewPage } from './pages/AdminCompetitionNewPage';
 import { AdminCheckoutCombinationsPage } from './pages/AdminCheckoutCombinationsPage';
 import { AdminCompetitionsPage } from './pages/AdminCompetitionsPage';
+import { AdminCohortBulkAssignPage } from './pages/AdminCohortBulkAssignPage';
 import { AdminCohortNewPage } from './pages/AdminCohortNewPage';
 import { AdminCohortsPage } from './pages/AdminCohortsPage';
 import { AdminScheduleEditPage } from './pages/AdminScheduleEditPage';
@@ -39,7 +41,7 @@ import { AdminSchedulesPage } from './pages/AdminSchedulesPage';
 import { AdminSessionEditPage } from './pages/AdminSessionEditPage';
 import { AdminSessionNewPage } from './pages/AdminSessionNewPage';
 import { AdminSessionsPage } from './pages/AdminSessionsPage';
-import { AnalyzerDartsPage } from './pages/AnalyzerDartsPage';
+import { AdminTestUsersPage } from './pages/AdminTestUsersPage';
 import { AnalyzerPage } from './pages/AnalyzerPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { HomePage } from './pages/HomePage';
@@ -54,6 +56,11 @@ import { PlaySoloNewPage } from './pages/PlaySoloNewPage';
 import { PlaySessionSummaryPage } from './pages/PlaySessionSummaryPage';
 import { RecordMatchPage } from './pages/RecordMatchPage';
 import { RoutineStepPage } from './pages/RoutineStepPage';
+import { FreeTrainingPage } from './pages/FreeTrainingPage';
+import { FreeTrainingRoutineViewPage } from './pages/FreeTrainingRoutineViewPage';
+import { FreeTrainingRunLayout } from './pages/FreeTrainingRunLayout';
+import { FreeTrainingRunPage } from './pages/FreeTrainingRunPage';
+import { FreeTrainingSummaryPage } from './pages/FreeTrainingSummaryPage';
 import { ProfileCheckoutVariationsPage } from './pages/ProfileCheckoutVariationsPage';
 import { ProfileEditPage } from './pages/ProfileEditPage';
 import { ProfilePage } from './pages/ProfilePage';
@@ -72,10 +79,11 @@ function PageWithLog({ name, children }: { name: string; children: ReactNode }) 
 export default function App() {
   return (
     <SupabaseProvider>
-      <BrowserRouter>
-        <ErrorBoundary>
-          <div style={{ display: 'contents' }}>
-            <Routes>
+      <AppConfigProvider>
+        <BrowserRouter>
+          <ErrorBoundary>
+            <div style={{ display: 'contents' }}>
+              <Routes>
           <Route path="/" element={<PageWithLog name="LandingPage"><LandingPage /></PageWithLog>} />
           <Route path="/sign-in" element={<PageWithLog name="SignInPage"><SignInPage /></PageWithLog>} />
           <Route path="/sign-up" element={<PageWithLog name="SignUpPage"><SignUpPage /></PageWithLog>} />
@@ -99,6 +107,13 @@ export default function App() {
               <Route path="play/ita" element={<PageWithLog name="PlayITAPage"><PlayITAPage /></PageWithLog>} />
               <Route path="play/solo/new" element={<PageWithLog name="PlaySoloNewPage"><PlaySoloNewPage /></PageWithLog>} />
               <Route path="play/record-match" element={<PageWithLog name="RecordMatchPage"><RecordMatchPage /></PageWithLog>} />
+              <Route path="play/free-training" element={<PageWithLog name="FreeTrainingPage"><FreeTrainingPage /></PageWithLog>} />
+              <Route path="play/free-training/routine/:routineId" element={<PageWithLog name="FreeTrainingRoutineViewPage"><FreeTrainingRoutineViewPage /></PageWithLog>} />
+              <Route path="play/free-training/run/:runId" element={<FreeTrainingRunLayout />}>
+                <Route index element={<PageWithLog name="FreeTrainingRunPage"><FreeTrainingRunPage /></PageWithLog>} />
+                <Route path="step" element={<PageWithLog name="RoutineStepPage"><RoutineStepPage /></PageWithLog>} />
+                <Route path="summary" element={<PageWithLog name="FreeTrainingSummaryPage"><FreeTrainingSummaryPage /></PageWithLog>} />
+              </Route>
               <Route path="play/session/:calendarId" element={<PlaySessionLayout />}>
                 <Route index element={<PageWithLog name="PlaySessionPage"><PlaySessionPage /></PageWithLog>} />
                 <Route path="step" element={<PageWithLog name="RoutineStepPage"><RoutineStepPage /></PageWithLog>} />
@@ -106,7 +121,7 @@ export default function App() {
                 <Route path="summary/darts" element={<PageWithLog name="PlaySessionDartsPage"><PlaySessionDartsPage /></PageWithLog>} />
               </Route>
               <Route path="analyzer" element={<PageWithLog name="AnalyzerPage"><AnalyzerPage /></PageWithLog>} />
-              <Route path="analyzer/darts/:runId" element={<PageWithLog name="AnalyzerDartsPage"><AnalyzerDartsPage /></PageWithLog>} />
+              <Route path="analyzer/darts/:runId" element={<PageWithLog name="PlaySessionDartsPage"><PlaySessionDartsPage /></PageWithLog>} />
               <Route path="settings" element={<PageWithLog name="SettingsPage"><SettingsPage /></PageWithLog>} />
             </Route>
           </Route>
@@ -133,6 +148,7 @@ export default function App() {
             <Route path="schedules/:id" element={<PageWithLog name="AdminScheduleEditPage"><AdminScheduleEditPage /></PageWithLog>} />
             <Route path="cohorts" element={<PageWithLog name="AdminCohortsPage"><AdminCohortsPage /></PageWithLog>} />
             <Route path="cohorts/new" element={<PageWithLog name="AdminCohortNewPage"><AdminCohortNewPage /></PageWithLog>} />
+            <Route path="cohorts/bulk-assign" element={<PageWithLog name="AdminCohortBulkAssignPage"><AdminCohortBulkAssignPage /></PageWithLog>} />
             <Route path="cohorts/:id" element={<PageWithLog name="AdminCohortEditPage"><AdminCohortEditPage /></PageWithLog>} />
             <Route path="cohorts/:id/calendar" element={<PageWithLog name="AdminCohortCalendarPage"><AdminCohortCalendarPage /></PageWithLog>} />
             <Route path="cohorts/:id/players" element={<PageWithLog name="AdminCohortPlayersPage"><AdminCohortPlayersPage /></PageWithLog>} />
@@ -155,13 +171,15 @@ export default function App() {
             <Route path="competitions/:id/edit" element={<PageWithLog name="AdminCompetitionEditPage"><AdminCompetitionEditPage /></PageWithLog>} />
             <Route path="competitions/:id/report" element={<PageWithLog name="AdminCompetitionReportPage"><AdminCompetitionReportPage /></PageWithLog>} />
             <Route path="checkout-combinations" element={<PageWithLog name="AdminCheckoutCombinationsPage"><AdminCheckoutCombinationsPage /></PageWithLog>} />
+            <Route path="test-users" element={<PageWithLog name="AdminTestUsersPage"><AdminTestUsersPage /></PageWithLog>} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </div>
-        </ErrorBoundary>
-      </BrowserRouter>
+              </Routes>
+            </div>
+          </ErrorBoundary>
+        </BrowserRouter>
+      </AppConfigProvider>
     </SupabaseProvider>
   );
 }

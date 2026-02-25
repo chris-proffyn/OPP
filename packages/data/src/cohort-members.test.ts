@@ -22,6 +22,8 @@ const sampleCohort: Cohort = {
   start_date: '2026-03-01',
   end_date: '2026-04-30',
   schedule_id: 'sched-1',
+  competitions_enabled: false,
+  cohort_status: 'proposed',
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
 };

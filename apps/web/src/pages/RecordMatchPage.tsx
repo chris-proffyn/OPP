@@ -3,7 +3,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   getOpponentsInCurrentCohort,
   getCurrentCohortForPlayer,
@@ -15,6 +15,7 @@ import type { OpponentOption } from '@opp/data';
 import type { Competition } from '@opp/data';
 import { useSupabase } from '../context/SupabaseContext';
 import { hasCompletedITA } from '../utils/ita';
+import { NavButton } from '../components/NavButton';
 
 const FORMAT_OPTIONS = [5, 7, 9, 11] as const;
 
@@ -132,11 +133,9 @@ export function RecordMatchPage() {
         <h1>Record match</h1>
         <p>Complete your Initial Training Assessment before recording matches.</p>
         <p>
-          <Link to="/play/ita" style={{ fontWeight: 500 }}>Complete ITA</Link>
-          {' · '}
-          <Link to="/profile" style={{ fontWeight: 500 }}>Profile</Link>
-          {' · '}
-          <Link to="/play" style={{ fontWeight: 500 }}>Play</Link>
+          <NavButton to="/play/ita" variant="secondary" style={{ marginRight: '0.5rem' }}>Complete ITA</NavButton>
+          <NavButton to="/profile" variant="secondary" style={{ marginRight: '0.5rem' }}>Profile</NavButton>
+          <NavButton to="/play" variant="secondary">Play</NavButton>
         </p>
       </>
     );
@@ -145,7 +144,7 @@ export function RecordMatchPage() {
   return (
     <>
       <h1>Record match</h1>
-      <p><Link to="/play">← Play</Link> · <Link to="/home">Dashboard</Link></p>
+      <p><NavButton to="/play" variant="secondary" style={{ marginRight: '0.5rem' }}>← Play</NavButton><NavButton to="/home" variant="secondary">Dashboard</NavButton></p>
       {opponents.length === 0 && (
         <p role="alert" style={{ color: '#c00' }}>
           You need to be in a cohort with other members to record a match. Join a cohort or ask your coach.

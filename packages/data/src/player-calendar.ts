@@ -4,6 +4,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { DataError } from './errors';
+import { listSessionRunsForPlayer } from './session-runs';
 import type {
   NextOrAvailableSession,
   PlayerCalendar,
@@ -220,14 +221,14 @@ export async function getAvailableSessionsForPlayer(
 /**
  * All sessions for the player (every calendar entry in their player_calendar), with display status:
  * Completed (player_calendar.status === 'completed'), Due (planned, scheduled_at <= now), Future (planned, scheduled_at > now).
- * Includes session_score for completed runs (from session_runs). Ordered by scheduled_at ASC.
+ * Includes attempt_count and session_score (average of completed runs for that calendar). Ordered by scheduled_at ASC.
  */
 export async function getAllSessionsForPlayer(
   client: SupabaseClient,
   playerId: string
 ): Promise<SessionWithStatus[]> {
   const now = new Date().toISOString();
-  const [pcResult, runsResult] = await Promise.all([
+  const [pcResult, runs] = await Promise.all([
     client
       .from(PLAYER_CALENDAR_TABLE)
       .select(`
@@ -236,11 +237,7 @@ export async function getAllSessionsForPlayer(
         calendar(id, scheduled_at, day_no, session_no, session_id, cohort_id, schedule_id, sessions(name))
       `)
       .eq('player_id', playerId),
-    client
-      .from(SESSION_RUNS_TABLE)
-      .select('calendar_id, session_score')
-      .eq('player_id', playerId)
-      .not('completed_at', 'is', null),
+    listSessionRunsForPlayer(client, playerId),
   ]);
   if (pcResult.error) mapError(pcResult.error);
   type PcRow = {
@@ -267,11 +264,24 @@ export async function getAllSessionsForPlayer(
     }[];
   };
   const rows = (pcResult.data ?? []) as PcRow[];
-  type RunRow = { calendar_id: string; session_score: number | null };
-  const scoreByCalendar = new Map<string, number>();
-  for (const row of (runsResult.data ?? []) as RunRow[]) {
-    if (row.session_score != null) scoreByCalendar.set(row.calendar_id, row.session_score);
+
+  const byCalendar = new Map<string, { attempt_count: number; aggregated_score: number | null }>();
+  const scheduledRuns = runs.filter((r) => r.calendar_id != null);
+  for (const run of scheduledRuns) {
+    const cid = run.calendar_id!;
+    const cur = byCalendar.get(cid) ?? { attempt_count: 0, aggregated_score: null as number | null };
+    cur.attempt_count += 1;
+    byCalendar.set(cid, cur);
   }
+  for (const [calendarId, cur] of byCalendar) {
+    const runList = scheduledRuns.filter((r) => r.calendar_id === calendarId);
+    const withScore = runList.filter((r) => r.completed_at != null && r.session_score != null);
+    if (withScore.length > 0) {
+      const sum = withScore.reduce((a, r) => a + Number(r.session_score), 0);
+      cur.aggregated_score = sum / withScore.length;
+    }
+  }
+
   const result: SessionWithStatus[] = [];
   for (const r of rows) {
     const cal = Array.isArray(r.calendar) ? r.calendar[0] : r.calendar;
@@ -283,7 +293,7 @@ export async function getAllSessionsForPlayer(
         : cal.scheduled_at <= now
           ? 'Due'
           : 'Future';
-    const score = scoreByCalendar.get(cal.id);
+    const agg = byCalendar.get(cal.id);
     result.push({
       calendar_id: cal.id,
       session_id: cal.session_id,
@@ -294,7 +304,8 @@ export async function getAllSessionsForPlayer(
       cohort_id: cal.cohort_id,
       schedule_id: cal.schedule_id,
       status: displayStatus,
-      ...(score != null && { session_score: score }),
+      attempt_count: agg?.attempt_count ?? 0,
+      ...(agg?.aggregated_score != null && { session_score: agg.aggregated_score }),
     });
   }
   result.sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at));

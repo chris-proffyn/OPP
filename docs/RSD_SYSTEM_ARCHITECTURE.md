@@ -188,6 +188,10 @@ It provides:
 
 No alternative backend is introduced unless explicitly approved.
 
+### 6.3 database migration scripts
+
+All scripts must be written idempotent. i.e. re-runnable.
+
 ---
 
 ### 6.1 Authentication & Email (Resend SMTP)
@@ -213,6 +217,14 @@ Rules:
 - RLS is mandatory for all user-facing tables
 - Access rules must be enforceable at the database layer
 - Client-side checks are advisory only
+
+### 6.4 Edge Functions and service role
+
+When Edge Functions require the Supabase **service role** key (e.g. for Auth Admin or bypassing RLS):
+
+- The key must be supplied only via Supabase secrets (runtime env); never in client bundles, repo, or logs.
+- Functions must authenticate/authorise the caller (e.g. JWT + role check) before performing privileged actions.
+- Server-side logging must not include passwords, tokens, or other secrets.
 
 ---
 

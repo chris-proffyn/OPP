@@ -1,10 +1,11 @@
 /**
- * List all darts thrown in a completed session. Route: /play/session/:calendarId/summary/darts.
+ * List all darts thrown in a completed session.
+ * Routes: /play/session/:calendarId/summary/darts (from Play) and /analyzer/darts/:runId (from Performance).
  * Mobile-optimised: routine dropdown, compact step/dart, thrown cell coloured green/red for hit/miss.
  */
 
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import {
   getCalendarEntryById,
   getSessionRunByPlayerAndCalendar,
@@ -14,6 +15,7 @@ import type { DartScore } from '@opp/data';
 import { useSupabase } from '../context/SupabaseContext';
 import { segmentCodeToSpoken } from '../constants/segments';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { NavButton } from '../components/NavButton';
 
 const pageStyle: React.CSSProperties = {
   padding: '0 0.5rem 2rem',
@@ -40,15 +42,6 @@ const thTdNarrowStyle: React.CSSProperties = {
   whiteSpace: 'nowrap',
   textAlign: 'center',
 };
-const linkStyle: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  minHeight: 'var(--tap-min, 44px)',
-  padding: '0.5rem 0',
-  color: 'var(--color-link, var(--color-primary))',
-  textDecoration: 'none',
-  fontWeight: 600,
-};
 const selectStyle: React.CSSProperties = {
   width: '100%',
   maxWidth: '20rem',
@@ -67,13 +60,17 @@ function formatDart(d: DartScore): string {
 }
 
 export function PlaySessionDartsPage() {
-  const { calendarId } = useParams<{ calendarId: string }>();
+  const { calendarId, runId } = useParams<{ calendarId?: string; runId?: string }>();
+  const location = useLocation();
   const { supabase, player } = useSupabase();
   const [sessionName, setSessionName] = useState<string | null>(null);
   const [darts, setDarts] = useState<DartScore[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [selectedRoutineNo, setSelectedRoutineNo] = useState<number | 'all'>('all');
+
+  const fromAnalyzer = Boolean(runId);
+  const sessionNameFromState = (location.state as { sessionName?: string } | null)?.sessionName;
 
   const routineNumbers = useMemo(() => {
     const set = new Set(darts.map((d) => d.routine_no));
@@ -86,6 +83,23 @@ export function PlaySessionDartsPage() {
   }, [darts, selectedRoutineNo]);
 
   useEffect(() => {
+    if (runId && supabase) {
+      let cancelled = false;
+      setSessionName(sessionNameFromState ?? 'Session');
+      listDartScoresByTrainingId(supabase, runId)
+        .then((list) => {
+          if (!cancelled) setDarts(list);
+        })
+        .catch(() => {
+          if (!cancelled) setNotFound(true);
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+      return () => {
+        cancelled = true;
+      };
+    }
     if (!calendarId || !supabase || !player) return;
     let cancelled = false;
     (async () => {
@@ -108,7 +122,7 @@ export function PlaySessionDartsPage() {
     return () => {
       cancelled = true;
     };
-  }, [calendarId, supabase, player]);
+  }, [calendarId, runId, supabase, player]);
 
   if (loading) {
     return (
@@ -122,7 +136,9 @@ export function PlaySessionDartsPage() {
     return (
       <div style={pageStyle}>
         <p>Session not found or not completed.</p>
-        <Link to="/play" style={linkStyle}>← Back to Play</Link>
+        <NavButton to={fromAnalyzer ? '/analyzer' : '/play'} variant="secondary">
+          ← Back to {fromAnalyzer ? 'Performance' : 'Play'}
+        </NavButton>
       </div>
     );
   }
@@ -131,15 +147,15 @@ export function PlaySessionDartsPage() {
 
   return (
     <div style={pageStyle}>
-      <h1 style={titleStyle}>All darts: {sessionName}</h1>
+      <h1 style={titleStyle}>All darts{sessionName ? `: ${sessionName}` : ''}</h1>
       <section style={sectionStyle}>
-        <Link
-          to={`/play/session/${calendarId}/summary`}
-          style={linkStyle}
-          className="tap-target"
-        >
-          ← Back to session summary
-        </Link>
+        {fromAnalyzer ? (
+          <NavButton to="/analyzer" variant="secondary">← Back to Performance</NavButton>
+        ) : (
+          <NavButton to={`/play/session/${calendarId}/summary`} variant="secondary">
+            ← Back to session summary
+          </NavButton>
+        )}
       </section>
       {darts.length === 0 ? (
         <p>No darts recorded for this session.</p>
@@ -212,9 +228,9 @@ export function PlaySessionDartsPage() {
         </>
       )}
       <p>
-        <Link to="/play" className="tap-target" style={linkStyle}>
-          ← Back to Play
-        </Link>
+        <NavButton to={fromAnalyzer ? '/analyzer' : '/play'} variant="secondary">
+          ← Back to {fromAnalyzer ? 'Performance' : 'Play'}
+        </NavButton>
       </p>
     </div>
   );

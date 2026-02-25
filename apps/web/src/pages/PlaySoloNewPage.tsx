@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   createSoloTrainingCohort,
   listSchedulesForSolo,
@@ -13,6 +13,7 @@ import {
 import type { Schedule } from '@opp/data';
 import { useSupabase } from '../context/SupabaseContext';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { NavButton } from '../components/NavButton';
 
 const pageStyle: React.CSSProperties = {
   padding: '0 0.5rem 2rem',
@@ -194,9 +195,7 @@ export function PlaySoloNewPage() {
       )}
 
       <p style={{ marginTop: '1.5rem' }}>
-        <Link to="/play" className="tap-target" style={linkStyle}>
-          ← Back to Play
-        </Link>
+        <NavButton to="/play" variant="secondary">← Back to Play</NavButton>
       </p>
     </div>
   );

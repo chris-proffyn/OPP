@@ -6,11 +6,12 @@
  */
 
 import { useEffect, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { getOrCreateITACalendarEntryForPlayer, isDataError } from '@opp/data';
 import { useSupabase } from '../context/SupabaseContext';
 import { hasCompletedITA, PLAY_MUST_COMPLETE_ITA_MESSAGE } from '../utils/ita';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { NavButton } from '../components/NavButton';
 
 export function PlayITAPage() {
   const { supabase, player } = useSupabase();
@@ -59,11 +60,9 @@ export function PlayITAPage() {
       {redirectMessage && <p style={{ color: 'var(--color-muted, #525252)', marginBottom: '1rem' }}>{redirectMessage}</p>}
       <p>{errorMessage ?? 'Something went wrong. Try again from the dashboard.'}</p>
       <p>
-        <Link to="/home" style={{ fontWeight: 500 }}>Dashboard</Link>
-        {' · '}
-        <Link to="/play" style={{ fontWeight: 500 }}>Play</Link>
-        {' · '}
-        <Link to="/profile" style={{ fontWeight: 500 }}>Profile</Link>
+        <NavButton to="/home" variant="secondary" style={{ marginRight: '0.5rem' }}>Dashboard</NavButton>
+        <NavButton to="/play" variant="secondary" style={{ marginRight: '0.5rem' }}>Play</NavButton>
+        <NavButton to="/profile" variant="secondary">Profile</NavButton>
       </p>
     </>
   );

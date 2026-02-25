@@ -52,12 +52,19 @@ export type {
   RoutineStepInput,
   // P3 Cohorts and calendar
   Cohort,
+  CohortStatus,
   CohortMember,
   Calendar,
   PlayerCalendar,
   PlayerCalendarStatus,
   CreateCohortPayload,
   UpdateCohortPayload,
+  BulkAssignParams,
+  BulkAssignGroup,
+  BulkAssignPreview,
+  BulkAssignResult,
+  BulkAssignResultCohort,
+  BulkAssignLevelMetric,
   GenerateCalendarOptions,
   UpdateCalendarEntryPayload,
   PlayerCalendarFilters,
@@ -129,6 +136,7 @@ export {
 } from './sessions';
 export {
   listRoutines,
+  listRoutinesForPlayer,
   getRoutineById,
   getRoutineWithSteps,
   createRoutine,
@@ -178,6 +186,10 @@ export {
   createCohort,
   updateCohort,
   deleteCohort,
+  transitionCohortToConfirmed,
+  syncCohortStatus,
+  recomputeCohortStatus,
+  bulkAssignPlayersToCohorts,
 } from './cohorts';
 export type { GetCohortByIdResult } from './cohorts';
 export {
@@ -198,10 +210,18 @@ export {
   listCohortMembers,
   addCohortMember,
   removeCohortMember,
+  movePlayerToCohort,
   getCurrentCohortForPlayer,
   getOpponentsInCurrentCohort,
+  listPlayersWithoutCohort,
 } from './cohort-members';
 export type { CohortMemberWithPlayer, OpponentOption } from './cohort-members';
+export {
+  validateBulkAssignParams,
+  computeBulkAssignEndDate,
+  computeBulkAssignGroups,
+} from './bulk-assign';
+export type { PlayerForBulkAssign } from './bulk-assign';
 export {
   listCalendarByCohort,
   generateCalendarForCohort,
@@ -221,8 +241,12 @@ export {
 export type { PlayerCalendarWithDetails } from './player-calendar';
 export {
   createSessionRun,
+  createFreeTrainingRun,
   getSessionRunByPlayerAndCalendar,
   getSessionRunById,
+  listSessionRunsByPlayerAndCalendar,
+  listSessionRunsForPlayer,
+  getAggregatedSessionScoreForPlayerAndCalendar,
   completeSessionRun,
   resetSessionForCalendar,
 } from './session-runs';
@@ -310,3 +334,8 @@ export { recordMatch } from './record-match';
 export type { RecordMatchResult } from './record-match';
 export { getCohortPerformanceReport, getCompetitionReport } from './reports';
 export type { GetCohortPerformanceReportOptions } from './reports';
+export {
+  FEATURE_FLAG_VOICE_ENABLED,
+  getFeatureFlag,
+  setFeatureFlag,
+} from './feature-flags';

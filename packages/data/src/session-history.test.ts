@@ -167,8 +167,8 @@ describe('getTrendForPlayer', () => {
       { routine_id: 'rout-1', routine_score: 50 },
     ];
     const client = createMockClient([
-      { data: runIds, error: null },
       { data: routineRows, error: null },
+      { data: runIds, error: null },
       { data: prsList, error: null },
     ]);
     const result = await getTrendForPlayer(client, 'pid-1', {

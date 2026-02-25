@@ -67,6 +67,18 @@ export async function listRoutines(client: SupabaseClient): Promise<Routine[]> {
 }
 
 /**
+ * List routines for Free Training (read-only). No admin required; RLS allows authenticated SELECT on routines.
+ * Returns id, name, description for the player to choose a routine to play.
+ */
+export async function listRoutinesForPlayer(client: SupabaseClient): Promise<Routine[]> {
+  const { data, error } = await client
+    .from(ROUTINES_TABLE)
+    .select('id, name, description, created_at, updated_at');
+  if (error) mapError(error);
+  return (data ?? []) as Routine[];
+}
+
+/**
  * Get routine by id with steps ordered by step_no. Returns null if not found. Admin only.
  */
 export async function getRoutineById(

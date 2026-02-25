@@ -13,6 +13,7 @@ import {
 import { useSupabase } from '../context/SupabaseContext';
 import { isITASession } from '../utils/ita';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { NavButton } from '../components/NavButton';
 
 const sectionStyle: React.CSSProperties = { marginBottom: '1.5rem' };
 const labelStyle: React.CSSProperties = { fontWeight: 600, marginRight: '0.5rem' };
@@ -39,7 +40,7 @@ export function PlaySessionPage() {
           <p style={{ margin: 0 }}>{gameState.message}</p>
         </div>
         <p>
-          <Link to="/play" className="tap-target" style={{ display: 'inline-flex' }}>← Back to Play</Link>
+          <NavButton to="/play" variant="secondary">← Back to Play</NavButton>
         </p>
       </div>
     );
@@ -105,7 +106,7 @@ export function PlaySessionPage() {
           )}
         </section>
         <p>
-          <Link to="/play" className="tap-target" style={{ display: 'inline-flex' }}>← Back to Play</Link>
+          <NavButton to="/play" variant="secondary">← Back to Play</NavButton>
         </p>
       </div>
     );
@@ -244,7 +245,7 @@ export function PlaySessionPage() {
           )}
         </section>
         <p>
-          <Link to="/play" className="tap-target" style={{ display: 'inline-flex' }}>← Back to Play</Link>
+          <NavButton to="/play" variant="secondary">← Back to Play</NavButton>
         </p>
       </div>
     );

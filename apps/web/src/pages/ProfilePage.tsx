@@ -1,10 +1,9 @@
 import { updatePlayer } from '@opp/data';
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useAppConfig } from '../context/AppConfigContext';
 import { useSupabase } from '../context/SupabaseContext';
 import { hasCompletedITA } from '../utils/ita';
-import { getThemePreference, setThemePreference } from '../utils/theme';
-import type { ThemePreference } from '../utils/theme';
+import { NavButton } from '../components/NavButton';
 
 export type ScoreInputMode = 'voice' | 'manual';
 
@@ -26,16 +25,10 @@ function formatRating(value: number | null): string {
   return String(value);
 }
 
-const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
-  { value: 'light', label: 'Light' },
-  { value: 'dark', label: 'Dark' },
-  { value: 'system', label: 'System (follow device)' },
-];
-
 /** Profile view: read-only; player loaded via context (getCurrentPlayer in SupabaseContext). */
 export function ProfilePage() {
+  const { voiceEnabled } = useAppConfig();
   const { player, supabase, refetchPlayer } = useSupabase();
-  const [themePref, setThemePref] = useState<ThemePreference>(() => getThemePreference());
   const [scoreInputMode, setScoreInputMode] = useState<ScoreInputMode>(() => (player?.score_input_mode ?? 'manual') as ScoreInputMode);
   const [scoreModeSaving, setScoreModeSaving] = useState(false);
   const [scoreModeError, setScoreModeError] = useState<string | null>(null);
@@ -45,12 +38,6 @@ export function ProfilePage() {
     const mode = (player?.score_input_mode ?? 'manual') as ScoreInputMode;
     setScoreInputMode(mode);
   }, [player?.score_input_mode]);
-
-  const onThemeChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    const v = e.target.value as ThemePreference;
-    setThemePreference(v);
-    setThemePref(v);
-  }, []);
 
   const onScoreInputModeChange = useCallback(
     async (mode: ScoreInputMode) => {
@@ -70,12 +57,6 @@ export function ProfilePage() {
     [supabase, scoreInputMode, scoreModeSaving, refetchPlayer]
   );
 
-  useEffect(() => {
-    const handler = () => setThemePref(getThemePreference());
-    window.addEventListener('opp-theme-change', handler);
-    return () => window.removeEventListener('opp-theme-change', handler);
-  }, []);
-
   if (!player) return null;
 
   const showCompleteITA = !hasCompletedITA(player);
@@ -86,74 +67,58 @@ export function ProfilePage() {
       {showCompleteITA && (
         <section style={{ marginBottom: '1.5rem' }}>
           <p style={{ marginBottom: '0.5rem' }}>
-            <Link to="/play/ita" style={{ ...linkStyle, display: 'inline-flex', alignItems: 'center', minHeight: 'var(--tap-min, 44px)' }}>
-              Complete ITA
-            </Link>
+            <NavButton to="/play/ita">Complete ITA</NavButton>
           </p>
           <p style={{ fontSize: '0.9rem', color: 'var(--color-muted, #525252)', margin: 0 }}>
             Required before other sessions
           </p>
         </section>
       )}
-      <section style={{ marginBottom: '1.5rem' }}>
-        <h2 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.5rem' }}>Appearance</h2>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <span>Theme</span>
-          <select
-            value={themePref}
-            onChange={onThemeChange}
-            style={{ padding: '0.35rem 0.5rem', fontSize: '1rem', minHeight: 'var(--tap-min, 44px)' }}
-            aria-label="Theme preference"
-          >
-            {THEME_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
-        </label>
-      </section>
-      <section style={{ marginBottom: '1.5rem' }}>
-        <h2 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.5rem' }}>Score Input Mode</h2>
-        <p style={{ fontSize: '0.9rem', color: 'var(--color-muted, #525252)', margin: '0 0 0.5rem 0' }}>
-          Default way to enter scores during practice (you can still switch during a step).
-        </p>
-        <div
-          role="group"
-          aria-label="Score input mode"
-          style={{ display: 'flex', gap: 0, flexWrap: 'wrap', maxWidth: '20rem' }}
-        >
-          <button
-            type="button"
-            onClick={() => onScoreInputModeChange('voice')}
-            disabled={scoreModeSaving}
-            style={{
-              ...toggleButtonStyle,
-              ...(scoreInputMode === 'voice' ? toggleButtonActiveStyle : {}),
-            }}
-            aria-pressed={scoreInputMode === 'voice'}
-            aria-label="Voice"
-          >
-            Voice
-          </button>
-          <button
-            type="button"
-            onClick={() => onScoreInputModeChange('manual')}
-            disabled={scoreModeSaving}
-            style={{
-              ...toggleButtonStyle,
-              ...(scoreInputMode === 'manual' ? toggleButtonActiveStyle : {}),
-            }}
-            aria-pressed={scoreInputMode === 'manual'}
-            aria-label="Manual"
-          >
-            Manual
-          </button>
-        </div>
-        {scoreModeError && (
-          <p role="alert" style={{ marginTop: '0.5rem', color: 'var(--color-error, #b91c1c)', fontSize: '0.9rem' }}>
-            {scoreModeError}
+      {voiceEnabled && (
+        <section style={{ marginBottom: '1.5rem' }}>
+          <h2 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.5rem' }}>Score Input Mode</h2>
+          <p style={{ fontSize: '0.9rem', color: 'var(--color-muted, #525252)', margin: '0 0 0.5rem 0' }}>
+            Default way to enter scores during practice (you can still switch during a step).
           </p>
-        )}
-      </section>
+          <div
+            role="group"
+            aria-label="Score input mode"
+            style={{ display: 'flex', gap: 0, flexWrap: 'wrap', maxWidth: '20rem' }}
+          >
+            <button
+              type="button"
+              onClick={() => onScoreInputModeChange('voice')}
+              disabled={scoreModeSaving}
+              style={{
+                ...toggleButtonStyle,
+                ...(scoreInputMode === 'voice' ? toggleButtonActiveStyle : {}),
+              }}
+              aria-pressed={scoreInputMode === 'voice'}
+              aria-label="Voice"
+            >
+              Voice
+            </button>
+            <button
+              type="button"
+              onClick={() => onScoreInputModeChange('manual')}
+              disabled={scoreModeSaving}
+              style={{
+                ...toggleButtonStyle,
+                ...(scoreInputMode === 'manual' ? toggleButtonActiveStyle : {}),
+              }}
+              aria-pressed={scoreInputMode === 'manual'}
+              aria-label="Manual"
+            >
+              Manual
+            </button>
+          </div>
+          {scoreModeError && (
+            <p role="alert" style={{ marginTop: '0.5rem', color: 'var(--color-error, #b91c1c)', fontSize: '0.9rem' }}>
+              {scoreModeError}
+            </p>
+          )}
+        </section>
+      )}
       <dl style={dlStyle}>
         <dt>Nickname</dt>
         <dd>{player.nickname}</dd>
@@ -191,13 +156,8 @@ export function ProfilePage() {
         <dd>{formatRating(player.player_rating)}</dd>
       </dl>
       <p>
-        <Link to="/profile/edit" style={linkStyle}>
-          Edit profile
-        </Link>
-        {' · '}
-        <Link to="/profile/checkout-variations" style={linkStyle}>
-          Checkout preferences
-        </Link>
+        <NavButton to="/profile/edit" variant="secondary" style={{ marginRight: '0.5rem' }}>Edit profile</NavButton>
+        <NavButton to="/profile/checkout-variations" variant="secondary">Checkout preferences</NavButton>
       </p>
     </>
   );
@@ -209,10 +169,6 @@ const dlStyle: React.CSSProperties = {
   gap: '0.25rem 1.5rem',
   margin: '1rem 0',
   maxWidth: '28rem',
-};
-const linkStyle: React.CSSProperties = {
-  color: 'inherit',
-  fontWeight: 500,
 };
 const toggleButtonStyle: React.CSSProperties = {
   padding: '0.5rem 1rem',

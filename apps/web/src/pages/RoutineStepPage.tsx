@@ -12,6 +12,7 @@ import {
   listDartScoresForStep,
   updatePlayerStepRun,
 } from '@opp/data';
+import { useAppConfig } from '../context/AppConfigContext';
 import { useSupabase } from '../context/SupabaseContext';
 import {
   computeCheckoutBustReason,
@@ -111,9 +112,11 @@ export function RoutineStepPage() {
   const navigate = useNavigate();
   const ctx = useSessionGameContext();
   const voice = useVoiceRecognition();
+  const { voiceEnabled } = useAppConfig();
   const { supabase, player } = useSupabase();
   const defaultScoreInputMode = (player?.score_input_mode ?? 'manual') as 'voice' | 'manual';
   const [inputMode, setInputMode] = useState<'voice' | 'manual'>(() => defaultScoreInputMode);
+  const showVoiceUi = voiceEnabled && voice.isSupported;
   const [completedVisits, setCompletedVisits] = useState<string[][]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -169,7 +172,7 @@ export function RoutineStepPage() {
   }, [supabase, trainingId, routineId, routineNo, stepNo]);
 
   useEffect(() => {
-    if (!ctx || voice.status !== 'result' || !voice.lastTranscript) return;
+    if (!ctx || !voiceEnabled || inputMode !== 'voice' || voice.status !== 'result' || !voice.lastTranscript) return;
     const segments = parseVisitFromTranscript(
       voice.lastTranscript,
       stepTarget,
@@ -186,14 +189,14 @@ export function RoutineStepPage() {
       void run();
     }
     voice.consumeResult();
-  }, [ctx, voice.status, voice.lastTranscript, stepTarget, voice.consumeResult, vs.length, isCheckout, dartsPerStep, refetchCompletedVisits]);
+  }, [ctx, voiceEnabled, inputMode, voice.status, voice.lastTranscript, stepTarget, voice.consumeResult, vs.length, isCheckout, dartsPerStep, refetchCompletedVisits]);
 
-  // §9: Invalid or missing context — redirect to session view so PlaySessionPage shows the error
+  // Invalid or missing context — redirect to back href so parent page shows the error
   useEffect(() => {
-    if (phase === 'invalid' && calendarId) {
-      navigate(`/play/session/${calendarId}`, { replace: true });
+    if (phase === 'invalid' && ctx?.getBackHref()) {
+      navigate(ctx.getBackHref(), { replace: true });
     }
-  }, [phase, calendarId, navigate]);
+  }, [phase, ctx, navigate]);
 
   const routineName = routine?.routine.name ?? 'Routine step';
   const totalVisits = Math.ceil(dartsPerStep / DARTS_PER_VISIT);
@@ -267,10 +270,9 @@ export function RoutineStepPage() {
 
   const handleBackToSession = useCallback(() => {
     void clearStepIfAbandoned().then(() => {
-      if (calendarId) navigate(`/play/session/${calendarId}`);
-      else navigate('/play');
+      navigate(ctx?.getBackHref() ?? '/play');
     });
-  }, [clearStepIfAbandoned, calendarId, navigate]);
+  }, [clearStepIfAbandoned, ctx, navigate]);
 
   /** Reset step: delete all dart_scores and step run data for this step, then refresh UI. */
   const handleResetStep = useCallback(async () => {
@@ -329,9 +331,9 @@ export function RoutineStepPage() {
         : await ctx.submitCurrentVisit();
       refetchCompletedVisits();
       if (result?.sessionComplete) {
-        navigate(`/play/session/${calendarId}`, { state: { returnFromStepComplete: true } });
+        navigate(ctx.getSummaryUrl(), { state: { returnFromStepComplete: true } });
       } else if (result?.nextAttemptIndex != null) {
-        navigate(`/play/session/${calendarId}/step`, { replace: true });
+        navigate(ctx.getSummaryUrl().replace(/\/summary$/, '/step'), { replace: true });
       }
       // When stepComplete && !sessionComplete we stay on this page; context already advanced to next step
     } catch (e) {
@@ -339,12 +341,12 @@ export function RoutineStepPage() {
     } finally {
       setSubmitting(false);
     }
-  }, [visitComplete, isCheckout, ctx, calendarId, navigate, refetchCompletedVisits]);
+  }, [visitComplete, isCheckout, ctx, navigate, refetchCompletedVisits]);
 
   if (!ctx || phase !== 'running') {
     return (
       <p>
-        <Link to={calendarId ? `/play/session/${calendarId}` : '/play'}>← Back to session</Link>
+        <Link to={ctx?.getBackHref() ?? '/play'}>← Back</Link>
         {phase === 'loading' && ' (loading…)'}
       </p>
     );
@@ -352,14 +354,7 @@ export function RoutineStepPage() {
   if (!routine || !step) {
     return (
       <p>
-        <Link to={`/play/session/${calendarId}`}>← Back to session</Link>
-      </p>
-    );
-  }
-  if (!calendarId) {
-    return (
-      <p>
-        <Link to="/play">← Back to Play</Link>
+        <Link to={ctx.getBackHref()}>← Back</Link>
       </p>
     );
   }
@@ -383,7 +378,7 @@ export function RoutineStepPage() {
           <span style={dartsAllowedStyle}>Darts allowed: {dartsPerStep}</span>
         </div>
         <div style={headerColRightStyle}>
-          {voice.isSupported && (
+          {showVoiceUi && (
             <button
               type="button"
               style={buttonTapStyle}
@@ -412,7 +407,7 @@ export function RoutineStepPage() {
       <section style={detailBlockStyle} aria-label="Step detail">
         <p style={{ margin: '0 0 0.5rem 0', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
           <span style={targetBadgeStyle}>{stepTarget ? segmentCodeToSpoken(stepTarget) : '—'}</span>
-          {voice.isSupported && (
+          {showVoiceUi ? (
             <>
               <button
                 type="button"
@@ -434,6 +429,8 @@ export function RoutineStepPage() {
                 </span>
               )}
             </>
+          ) : (
+            <span style={{ fontSize: '0.9rem', color: 'var(--color-muted, #6b7280)' }}>Manual</span>
           )}
           <button
             type="button"

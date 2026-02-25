@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { createPlayer, isDataError } from '@opp/data';
 import { useSupabase } from '../context/SupabaseContext';
 
-const AGE_RANGES = ['20-29', '30-39', '40-49', '50-59', '60+'] as const;
+const AGE_RANGES = ['0-19', '20-29', '30-39', '40-49', '50-59', '60+'] as const;
 const GENDER_OPTIONS = [
   { value: '', label: 'Prefer not to say' },
   { value: 'm', label: 'Male' },

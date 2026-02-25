@@ -1,5 +1,5 @@
 /**
- * Shell for authenticated + player routes. Logo links to home; nav has Play, Stats (icons), Hamburger next to Stats, Admin if admin, and avatar (initials + level) on the right.
+ * Shell for authenticated + player routes. Logo links to home; nav has Play, Stats (icons), Admin if admin, and avatar (initials + level) on the right. Avatar opens account menu (Profile, Settings, Sign out).
  * Use with AuthGuard and PlayerGuard so only reachable when authenticated and player exists.
  */
 
@@ -125,17 +125,6 @@ function PlayerAvatar({
   );
 }
 
-/** Three horizontal lines icon for hamburger. */
-function HamburgerIcon({ open }: { open: boolean }) {
-  return (
-    <span style={{ display: 'flex', flexDirection: 'column', gap: open ? 0 : 5, justifyContent: 'center' }} aria-hidden>
-      <span style={{ display: 'block', width: 22, height: 2, background: 'currentColor', transform: open ? 'rotate(45deg) translate(2px, 2px)' : 'none' }} />
-      <span style={{ display: 'block', width: 22, height: 2, background: 'currentColor', opacity: open ? 0 : 1 }} />
-      <span style={{ display: 'block', width: 22, height: 2, background: 'currentColor', transform: open ? 'rotate(-45deg) translate(2px, -2px)' : 'none' }} />
-    </span>
-  );
-}
-
 export function AuthenticatedLayout() {
   const { player, signOut } = useSupabase();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -157,42 +146,37 @@ export function AuthenticatedLayout() {
             <OppStatsIcon width={24} height={24} style={{ display: 'block', width: 24, height: 24 }} />
           </NavIcon>
         </Link>
-        <button
-          type="button"
-          onClick={() => setMenuOpen((o) => !o)}
-          aria-expanded={menuOpen}
-          aria-haspopup="true"
-          aria-label="Open menu"
-          style={{
-            minHeight: 'var(--tap-min, 44px)',
-            minWidth: 'var(--tap-min, 44px)',
-            padding: '0.5rem 0.75rem',
-            cursor: 'pointer',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'transparent',
-            border: 'none',
-            color: 'var(--color-text)',
-          }}
-        >
-          <HamburgerIcon open={menuOpen} />
-        </button>
         {player?.role === 'admin' && (
           <Link to="/admin" style={linkStyle}>Admin</Link>
         )}
-        <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
+        <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', position: 'relative' }}>
           {player && (
-            <span
+            <button
+              type="button"
+              onClick={() => setMenuOpen((o) => !o)}
+              aria-expanded={menuOpen}
+              aria-haspopup="true"
+              aria-label="Account menu"
               title={`${player.nickname ?? 'Player'}, level ${getDisplayLevel(player.training_rating, player.baseline_rating)}`}
-              aria-label={`${player.nickname ?? 'Player'}, level ${getDisplayLevel(player.training_rating, player.baseline_rating)}`}
+              style={{
+                minHeight: 'var(--tap-min, 44px)',
+                minWidth: 'var(--tap-min, 44px)',
+                padding: 0,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'transparent',
+                border: 'none',
+                borderRadius: '50%',
+              }}
             >
               <PlayerAvatar
                 initials={getInitials(player.nickname)}
                 level={getDisplayLevel(player.training_rating, player.baseline_rating)}
                 size={40}
               />
-            </span>
+            </button>
           )}
           {menuOpen && (
             <div

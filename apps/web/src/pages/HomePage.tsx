@@ -17,6 +17,7 @@ import { useSupabase } from '../context/SupabaseContext';
 import { hasCompletedITA } from '../utils/ita';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorMessage } from '../components/ErrorMessage';
+import { NavButton } from '../components/NavButton';
 
 const sectionStyle: React.CSSProperties = { marginBottom: '1.5rem' };
 const gridStyle: React.CSSProperties = {
@@ -36,23 +37,6 @@ const secondaryStyle: React.CSSProperties = {
   fontSize: '0.85rem',
   color: 'var(--color-muted, #6b7280)',
   marginTop: '0.15rem',
-};
-const startSessionButtonStyle: React.CSSProperties = {
-  marginTop: '0.5rem',
-  padding: '0.5rem 1rem',
-  minHeight: 'var(--tap-min, 44px)',
-  fontWeight: 600,
-  fontSize: '1rem',
-  cursor: 'pointer',
-  borderRadius: 6,
-  border: '1px solid var(--color-border, #374151)',
-  backgroundColor: 'var(--color-primary, #3b82f6)',
-  color: 'white',
-  textDecoration: 'none',
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  boxSizing: 'border-box',
 };
 
 function formatDate(iso: string): string {
@@ -104,7 +88,12 @@ export function HomePage() {
     };
   }, [supabase, player?.id, retryTrigger]);
 
-  const prDisplay = player?.player_rating != null ? String(player.player_rating) : '—';
+  const levelDisplay =
+    player?.training_rating != null
+      ? String(Math.round(player.training_rating))
+      : player?.baseline_rating != null
+        ? String(Math.round(player.baseline_rating))
+        : '—';
 
   if (loading) {
     return <LoadingSpinner message="Loading dashboard…" />;
@@ -163,7 +152,7 @@ export function HomePage() {
               <img src={player.avatar_url} alt="" width={48} height={48} style={{ borderRadius: 4, marginRight: '0.5rem', verticalAlign: 'middle' }} />
             )}
             <span style={mainValueStyle}>{player?.nickname ?? '—'}</span>
-            <div style={secondaryStyle}>Level: {prDisplay}</div>
+            <div style={secondaryStyle}>Level: {levelDisplay}</div>
           </div>
         </div>
       </section>
@@ -194,15 +183,13 @@ export function HomePage() {
               <>
                 <span style={mainValueStyle}>Complete ITA</span>
                 <div style={secondaryStyle}>Required before training</div>
-                <Link to="/play/ita" className="tap-target" style={{ ...startSessionButtonStyle, marginTop: '0.5rem' }}>Start ITA</Link>
+                <NavButton to="/play/ita" style={{ marginTop: '0.5rem' }}>Start ITA</NavButton>
               </>
             ) : nextSession ? (
               <>
                 <span style={mainValueStyle}>{nextSession.session_name}</span>
                 <div style={secondaryStyle}>{formatDateTime(nextSession.scheduled_at)}</div>
-                <Link to={`/play/session/${nextSession.calendar_id}`} className="tap-target" style={startSessionButtonStyle} role="button">
-                  Start session
-                </Link>
+                <NavButton to={`/play/session/${nextSession.calendar_id}`}>Start session</NavButton>
               </>
             ) : (
               <span style={mainValueStyle}>No upcoming session</span>
@@ -220,9 +207,7 @@ export function HomePage() {
                 <>
                   <span style={mainValueStyle}>{nextCompetition.name}</span>
                   <div style={secondaryStyle}>{formatDateTime(nextCompetition.scheduled_at)}</div>
-                  <Link to="/play/record-match" className="tap-target" style={{ ...startSessionButtonStyle, marginTop: '0.5rem' }} role="button">
-                    Record match
-                  </Link>
+                  <NavButton to="/play/record-match" style={{ marginTop: '0.5rem' }}>Record match</NavButton>
                 </>
               ) : (
                 <span style={secondaryStyle}>—</span>

@@ -11,7 +11,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   applyTrainingRatingProgression,
   checkoutRoutineScore,
@@ -29,11 +29,13 @@ import {
   getLevelRequirementByMinLevelAndRoutineType,
   getRoutineWithSteps,
   ROUTINE_TYPES,
+  getSessionRunById,
   getSessionRunByPlayerAndCalendar,
   getSessionWithRoutines,
   insertDartScore,
   isDataError,
   listPlayerCalendar,
+  listRoutineScoresForSessionRun,
   roundScore,
   sessionScore,
   stepScore,
@@ -74,7 +76,8 @@ export type GameState =
   | { phase: 'invalid'; message: string }
   | {
       phase: 'ready';
-      calendarEntry: CalendarEntryWithDetails;
+      /** Omitted for free-training runs. */
+      calendarEntry?: CalendarEntryWithDetails;
       sessionName: string;
       routinesWithSteps: RoutineWithSteps[];
       levelReqsByType: Partial<Record<RoutineType, LevelRequirement>>;
@@ -83,8 +86,9 @@ export type GameState =
   | {
       phase: 'running';
       trainingId: string;
-      calendarId: string;
-      calendarEntry: CalendarEntryWithDetails;
+      /** Omitted for free-training runs. */
+      calendarId?: string;
+      calendarEntry?: CalendarEntryWithDetails;
       sessionName: string;
       routinesWithSteps: RoutineWithSteps[];
       levelReqsByType: Partial<Record<RoutineType, LevelRequirement>>;
@@ -122,24 +126,124 @@ export type SessionGameContextValue = {
   submitVisit: () => Promise<SubmitVisitResult | undefined>;
   /** Persist current 3-dart visit (non-checkout only). Call when visitSelections has 3 darts. */
   submitCurrentVisit: () => Promise<SubmitVisitResult | undefined>;
+  /** Back link (e.g. session view or Free Training list). */
+  getBackHref: () => string;
+  /** Summary page URL after session complete. */
+  getSummaryUrl: () => string;
 };
 
 const SessionGameContext = createContext<SessionGameContextValue | null>(null);
 
-function useSessionGameState(calendarId: string | undefined): SessionGameContextValue {
+function useSessionGameState(
+  calendarId: string | undefined,
+  runId: string | undefined
+): SessionGameContextValue {
+  const location = useLocation();
   const navigate = useNavigate();
   const { supabase, player, refetchPlayer } = useSupabase();
   const [gameState, setGameState] = useState<GameState>({ phase: 'loading' });
+  const isFreeRun = Boolean(runId && !calendarId);
 
   useEffect(() => {
-    if (!calendarId || !player) {
+    if (!player) {
+      setGameState((prev) => {
+        if (prev.phase === 'running' || prev.phase === 'ended') return prev;
+        return { phase: 'invalid', message: 'Missing player.' };
+      });
+      return;
+    }
+    if (isFreeRun) {
+      if (!runId) return;
+      setGameState((prev) => {
+        if (prev.phase === 'loading') return prev;
+        if (prev.phase === 'running' || prev.phase === 'ended') return prev;
+        return { phase: 'loading' };
+      });
+      let cancelled = false;
+      (async () => {
+        try {
+          const run = await getSessionRunById(supabase, runId);
+          if (cancelled) return;
+          if (
+            !run ||
+            run.player_id !== player.id ||
+            run.run_type !== 'free' ||
+            !run.routine_id
+          ) {
+            setGameState((prev) => {
+              if (prev.phase === 'running' || prev.phase === 'ended') return prev;
+              return { phase: 'invalid', message: 'Free training run not found or not yours.' };
+            });
+            return;
+          }
+          if (run.completed_at != null) {
+            const routines = await listRoutineScoresForSessionRun(supabase, run.id);
+            if (cancelled) return;
+            const routineName = routines[0]?.routine_name ?? 'Routine';
+            setGameState({
+              phase: 'ended',
+              finalSessionScore: run.session_score ?? 0,
+              routineScores: routines.map((r) => r.routine_score),
+              sessionName: `Free Training — ${routineName}`,
+            });
+            return;
+          }
+          const rws = await getRoutineWithSteps(supabase, run.routine_id);
+          if (cancelled || !rws) {
+            setGameState((prev) => {
+              if (prev.phase === 'running' || prev.phase === 'ended') return prev;
+              return { phase: 'invalid', message: 'Routine not found.' };
+            });
+            return;
+          }
+          const routinesWithSteps: RoutineWithSteps[] = [
+            { routine: { id: rws.routine.id, name: rws.routine.name }, steps: rws.steps },
+          ];
+          const decade = levelToDecade(player.training_rating ?? player.baseline_rating ?? null);
+          const [lrSS, lrSD, lrST, lrC] = await Promise.all(
+            ROUTINE_TYPES.map((rt) =>
+              getLevelRequirementByMinLevelAndRoutineType(supabase, decade, rt)
+            )
+          );
+          if (cancelled) return;
+          const levelReqsByType: Partial<Record<RoutineType, LevelRequirement>> = {};
+          if (lrSS) levelReqsByType.SS = lrSS;
+          if (lrSD) levelReqsByType.SD = lrSD;
+          if (lrST) levelReqsByType.ST = lrST;
+          if (lrC) levelReqsByType.C = lrC;
+          setGameState((prev) => {
+            if (prev.phase === 'running' || prev.phase === 'ended') return prev;
+            return {
+              phase: 'ready',
+              sessionName: `Free Training — ${rws.routine.name}`,
+              routinesWithSteps,
+              levelReqsByType,
+              existingRun: { id: run.id, completed_at: run.completed_at },
+            };
+          });
+        } catch (e) {
+          if (cancelled) return;
+          setGameState((prev) => {
+            if (prev.phase === 'running' || prev.phase === 'ended') return prev;
+            return {
+              phase: 'invalid',
+              message: isDataError(e) ? (e as Error).message : 'Something went wrong.',
+            };
+          });
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    if (!calendarId) {
       setGameState((prev) => {
         if (prev.phase === 'running' || prev.phase === 'ended') return prev;
         return { phase: 'invalid', message: 'Missing session or player.' };
       });
       return;
     }
-    // When navigating to a different session, clear stale running/ended state so we load for this calendarId
     setGameState((prev) => {
       if (prev.phase === 'loading') return prev;
       if (prev.phase === 'running' && prev.calendarId === calendarId) return prev;
@@ -207,10 +311,20 @@ function useSessionGameState(calendarId: string | undefined): SessionGameContext
         if (lrSD) levelReqsByType.SD = lrSD;
         if (lrST) levelReqsByType.ST = lrST;
         if (lrC) levelReqsByType.C = lrC;
-        const existingRun = await getSessionRunByPlayerAndCalendar(supabase, player.id, calendarId);
+        const runIdFromState = (location.state as { runId?: string } | null)?.runId;
+        let existingRun: Awaited<ReturnType<typeof getSessionRunByPlayerAndCalendar>>;
+        if (runIdFromState && typeof runIdFromState === 'string') {
+          const runById = await getSessionRunById(supabase, runIdFromState);
+          if (runById && runById.calendar_id === calendarId && runById.player_id === player.id) {
+            existingRun = runById;
+          } else {
+            existingRun = await getSessionRunByPlayerAndCalendar(supabase, player.id, calendarId);
+          }
+        } else {
+          existingRun = await getSessionRunByPlayerAndCalendar(supabase, player.id, calendarId);
+        }
         if (cancelled) return;
         setGameState((prev) => {
-          // Don't overwrite if we're already in a started/completed session (e.g. user navigated to step page)
           if (prev.phase === 'running' || prev.phase === 'ended') return prev;
           return {
             phase: 'ready',
@@ -237,11 +351,14 @@ function useSessionGameState(calendarId: string | undefined): SessionGameContext
     return () => {
       cancelled = true;
     };
-  }, [calendarId, player, supabase, navigate]);
+  }, [calendarId, runId, isFreeRun, player, supabase, navigate, location.state]);
 
   const startResume = useCallback(async () => {
-    if (gameState.phase !== 'ready' || !player || !calendarId) return;
-    const { calendarEntry, sessionName, routinesWithSteps, levelReqsByType } = gameState;
+    if (gameState.phase !== 'ready' || !player) return;
+    const { calendarEntry, sessionName, routinesWithSteps, levelReqsByType, existingRun } = gameState;
+    const isFree = !calendarEntry;
+    if (isFree && !existingRun) return;
+    if (!isFree && !calendarId) return;
     const hasCheckout = hasAnyCheckoutStep(routinesWithSteps);
     try {
       let playerLevel: number | undefined;
@@ -249,9 +366,12 @@ function useSessionGameState(calendarId: string | undefined): SessionGameContext
         const cohort = await getCurrentCohortForPlayer(supabase, player.id);
         playerLevel = cohort?.level ?? player.training_rating ?? player.baseline_rating ?? 0;
       }
-      const run = await createSessionRun(supabase, player.id, calendarId, {
-        ...(hasCheckout && playerLevel !== undefined && { player_level_snapshot: playerLevel }),
-      });
+      const useExistingRun = existingRun && !existingRun.completed_at;
+      const run = useExistingRun
+        ? { id: existingRun.id }
+        : await createSessionRun(supabase, player.id, calendarId!, {
+            ...(hasCheckout && playerLevel !== undefined && { player_level_snapshot: playerLevel }),
+          });
       if (hasCheckout && playerLevel !== undefined) {
         const lrC = levelReqsByType.C;
         const attemptCountForExpectation = lrC?.attempt_count ?? undefined;
@@ -297,8 +417,8 @@ function useSessionGameState(calendarId: string | undefined): SessionGameContext
       setGameState({
         phase: 'running',
         trainingId: run.id,
-        calendarId,
-        calendarEntry,
+        ...(calendarId && { calendarId }),
+        ...(calendarEntry && { calendarEntry }),
         sessionName,
         routinesWithSteps,
         levelReqsByType,
@@ -541,15 +661,17 @@ function useSessionGameState(calendarId: string | undefined): SessionGameContext
         const finalSc = sessionScore(routineScores);
         try {
           await completeSessionRun(supabase, trainingId, finalSc);
-          const pcList = await listPlayerCalendar(supabase, player.id);
-          const pcRow = pcList.find((r) => r.calendar_id === gameState.calendarId);
-          if (pcRow) {
-            await updatePlayerCalendarStatus(supabase, pcRow.id, 'completed');
-          }
-          if (isITASession(gameState.sessionName)) {
-            await completeITAAndSetBR(supabase, trainingId, player.id);
-          } else {
-            await applyTrainingRatingProgression(supabase, player.id, finalSc);
+          if (gameState.calendarId) {
+            const pcList = await listPlayerCalendar(supabase, player.id);
+            const pcRow = pcList.find((r) => r.calendar_id === gameState.calendarId);
+            if (pcRow) {
+              await updatePlayerCalendarStatus(supabase, pcRow.id, 'completed');
+            }
+            if (isITASession(gameState.sessionName)) {
+              await completeITAAndSetBR(supabase, trainingId, player.id);
+            } else {
+              await applyTrainingRatingProgression(supabase, player.id, finalSc);
+            }
           }
           await refetchPlayer();
         } catch (e) {
@@ -686,15 +808,17 @@ function useSessionGameState(calendarId: string | undefined): SessionGameContext
           const finalSc = sessionScore(newRoutineScores);
           try {
             await completeSessionRun(supabase, trainingId, finalSc);
-            const pcList = await listPlayerCalendar(supabase, player.id);
-            const pcRow = pcList.find((r) => r.calendar_id === gameState.calendarId);
-            if (pcRow) {
-              await updatePlayerCalendarStatus(supabase, pcRow.id, 'completed');
-            }
-            if (isITASession(gameState.sessionName)) {
-              await completeITAAndSetBR(supabase, trainingId, player.id);
-            } else {
-              await applyTrainingRatingProgression(supabase, player.id, finalSc);
+            if (gameState.calendarId) {
+              const pcList = await listPlayerCalendar(supabase, player.id);
+              const pcRow = pcList.find((r) => r.calendar_id === gameState.calendarId);
+              if (pcRow) {
+                await updatePlayerCalendarStatus(supabase, pcRow.id, 'completed');
+              }
+              if (isITASession(gameState.sessionName)) {
+                await completeITAAndSetBR(supabase, trainingId, player.id);
+              } else {
+                await applyTrainingRatingProgression(supabase, player.id, finalSc);
+              }
             }
             await refetchPlayer();
           } catch (e) {
@@ -741,6 +865,16 @@ function useSessionGameState(calendarId: string | undefined): SessionGameContext
     return undefined;
   }, [gameState, player, supabase, refetchPlayer]);
 
+  const getBackHref = useCallback(() => {
+    if (runId) return '/play/free-training';
+    return `/play/session/${calendarId ?? ''}`;
+  }, [calendarId, runId]);
+
+  const getSummaryUrl = useCallback(() => {
+    if (runId) return `/play/free-training/run/${runId}/summary`;
+    return `/play/session/${calendarId ?? ''}/summary`;
+  }, [calendarId, runId]);
+
   return {
     gameState,
     setGameState,
@@ -751,12 +885,23 @@ function useSessionGameState(calendarId: string | undefined): SessionGameContext
     undoLast,
     submitVisit,
     submitCurrentVisit,
+    getBackHref,
+    getSummaryUrl,
   };
 }
 
 export function SessionGameProvider({ children }: { children: ReactNode }) {
   const { calendarId } = useParams<{ calendarId: string }>();
-  const value = useSessionGameState(calendarId);
+  const value = useSessionGameState(calendarId, undefined);
+  return (
+    <SessionGameContext.Provider value={value}>{children}</SessionGameContext.Provider>
+  );
+}
+
+/** Provider for free-training run at /play/free-training/run/:runId. Same context shape as SessionGameProvider. */
+export function FreeTrainingGameProvider({ children }: { children: ReactNode }) {
+  const { runId } = useParams<{ runId: string }>();
+  const value = useSessionGameState(undefined, runId);
   return (
     <SessionGameContext.Provider value={value}>{children}</SessionGameContext.Provider>
   );

@@ -1,6 +1,11 @@
 /**
  * Player data access. All reads/writes go through Supabase client; RLS enforces auth.
  * Caller must pass an authenticated client (from app).
+ *
+ * Test users: Bulk-created test users have players.is_test_user = true. For analytics
+ * or reporting that aggregate across all players (e.g. total user count, engagement),
+ * filter with .eq('is_test_user', false) so test users are excluded. See
+ * OPP_BULK_TEST_USER_CREATION_IMPLEMENTATION_CHECKLIST.md §12.
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';

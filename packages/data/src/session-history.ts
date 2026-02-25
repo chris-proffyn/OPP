@@ -2,6 +2,11 @@
  * P6 Dashboard and Analyzer: session history and trends.
  * Per docs/P6_DASHBOARD_ANALYZER_DOMAIN.md §6.3, §7.2, §9.
  * RLS: players read own session_runs and player_routine_scores; calendar/routines readable per P2/P3.
+ *
+ * Free training exclusion (§9): All queries here exclude free-training runs (calendar_id IS NULL / run_type = 'free')
+ * so session history, getSessionHistoryForPlayer, getTrendForPlayer and getRecentSessionScoresForPlayer only
+ * include scheduled runs. Direct reports that query dart_scores (or join to session_runs) can include or exclude
+ * free training by filtering on session_runs.run_type = 'free'.
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -11,11 +16,13 @@ import type {
   RecentSessionScore,
   SessionHistoryEntry,
 } from './types';
+import type { RoutineType } from './types';
 
 const SESSION_RUNS_TABLE = 'session_runs';
 const CALENDAR_TABLE = 'calendar';
 const PLAYER_ROUTINE_SCORES_TABLE = 'player_routine_scores';
 const ROUTINES_TABLE = 'routines';
+const ROUTINE_STEPS_TABLE = 'routine_steps';
 
 function getErrorMessage(err: unknown): string {
   if (err && typeof err === 'object' && 'message' in err && typeof (err as { message: unknown }).message === 'string') {
@@ -35,6 +42,7 @@ function mapError(err: unknown): never {
 
 /**
  * Last N completed session runs: session_score and completed_at. For Dashboard TR trend (last 4 → compare last 2 vs previous 2).
+ * Excludes free-training runs (calendar_id IS NULL) so only scheduled session scores affect the trend.
  */
 export async function getRecentSessionScoresForPlayer(
   client: SupabaseClient,
@@ -47,6 +55,7 @@ export async function getRecentSessionScoresForPlayer(
     .eq('player_id', playerId)
     .not('completed_at', 'is', null)
     .not('session_score', 'is', null)
+    .not('calendar_id', 'is', null)
     .order('completed_at', { ascending: false })
     .limit(Math.max(1, limit));
 
@@ -59,6 +68,7 @@ export async function getRecentSessionScoresForPlayer(
 
 /**
  * Completed session runs with session name and per-routine scores. Optional since date and limit.
+ * Excludes free-training runs (calendar_id IS NULL) so only scheduled sessions appear in history.
  */
 export async function listCompletedSessionRunsForPlayer(
   client: SupabaseClient,
@@ -70,6 +80,7 @@ export async function listCompletedSessionRunsForPlayer(
     .select('id, calendar_id, completed_at, session_score')
     .eq('player_id', playerId)
     .not('completed_at', 'is', null)
+    .not('calendar_id', 'is', null)
     .order('completed_at', { ascending: false });
 
   if (options?.since) {
@@ -161,13 +172,20 @@ export async function getSessionHistoryForPlayer(
 }
 
 /**
- * Aggregate trend: session_score = average session score in window; routine = average routine score for matching routine name in window.
+ * Aggregate trend: session_score = average session score in window; routine = average routine score for matching routine name or routine_type in window.
  * P8: windowDays null/undefined = all time (no date filter).
+ * When type === 'routine', provide either routineName (name ilike) or routineType (SS, SD, ST, C).
+ * Excludes free-training runs (calendar_id IS NULL) so only scheduled runs affect trends.
  */
 export async function getTrendForPlayer(
   client: SupabaseClient,
   playerId: string,
-  options: { type: 'session_score' | 'routine'; routineName?: string; windowDays?: number | null }
+  options: {
+    type: 'session_score' | 'routine';
+    routineName?: string;
+    routineType?: RoutineType;
+    windowDays?: number | null;
+  }
 ): Promise<number | null> {
   const windowDays = options.windowDays;
   const allTime = windowDays == null || windowDays === undefined;
@@ -184,7 +202,8 @@ export async function getTrendForPlayer(
       .select('session_score')
       .eq('player_id', playerId)
       .not('completed_at', 'is', null)
-      .not('session_score', 'is', null);
+      .not('session_score', 'is', null)
+      .not('calendar_id', 'is', null);
     if (sinceIso) query = query.gte('completed_at', sinceIso);
     const { data, error } = await query;
 
@@ -196,13 +215,32 @@ export async function getTrendForPlayer(
   }
 
   if (options.type === 'routine') {
-    const namePart = (options.routineName ?? '').trim();
-    if (!namePart) return null;
+    let matchingRoutineIds: Set<string>;
+
+    if (options.routineType != null) {
+      const { data: stepRows, error: stepsError } = await client
+        .from(ROUTINE_STEPS_TABLE)
+        .select('routine_id')
+        .eq('routine_type', options.routineType);
+      if (stepsError) mapError(stepsError);
+      matchingRoutineIds = new Set(((stepRows ?? []) as { routine_id: string }[]).map((r) => r.routine_id));
+    } else {
+      const namePart = (options.routineName ?? '').trim();
+      if (!namePart) return null;
+      const { data: routineRows } = await client
+        .from(ROUTINES_TABLE)
+        .select('id')
+        .ilike('name', `%${namePart}%`);
+      matchingRoutineIds = new Set(((routineRows ?? []) as { id: string }[]).map((r) => r.id));
+    }
+
+    if (matchingRoutineIds.size === 0) return null;
 
     let runsQuery = client
       .from(SESSION_RUNS_TABLE)
       .select('id')
       .eq('player_id', playerId)
+      .not('calendar_id', 'is', null)
       .not('completed_at', 'is', null);
     if (sinceIso) runsQuery = runsQuery.gte('completed_at', sinceIso);
     const { data: runs, error: runsError } = await runsQuery;
@@ -210,14 +248,6 @@ export async function getTrendForPlayer(
     if (runsError) mapError(runsError);
     const runIds = (runs ?? []).map((r: { id: string }) => r.id) as string[];
     if (runIds.length === 0) return null;
-
-    const { data: routineRows } = await client
-      .from(ROUTINES_TABLE)
-      .select('id')
-      .ilike('name', `%${namePart}%`);
-
-    const matchingRoutineIds = new Set(((routineRows ?? []) as { id: string }[]).map((r) => r.id));
-    if (matchingRoutineIds.size === 0) return null;
 
     const { data: prs, error: prsError } = await client
       .from(PLAYER_ROUTINE_SCORES_TABLE)

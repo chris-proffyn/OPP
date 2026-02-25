@@ -278,6 +278,15 @@ export interface RoutineStepInput {
 // P3 Cohorts and calendar (snake_case to match DB)
 // ---------------------------------------------------------------------------
 
+/** Cohort lifecycle status (DB snake_case). Domain: DRAFT, PROPOSED, CONFIRMED, LIVE, OVERDUE, COMPLETE. */
+export type CohortStatus =
+  | 'draft'
+  | 'proposed'
+  | 'confirmed'
+  | 'live'
+  | 'overdue'
+  | 'complete';
+
 export interface Cohort {
   id: string;
   name: string;
@@ -287,6 +296,8 @@ export interface Cohort {
   schedule_id: string;
   /** When true, competitions are enabled for this cohort; when false, competitions are disabled. */
   competitions_enabled: boolean;
+  /** Cohort lifecycle status. */
+  cohort_status: CohortStatus;
   created_at: string;
   updated_at: string;
 }
@@ -329,6 +340,8 @@ export interface CreateCohortPayload {
   end_date: string;
   schedule_id: string;
   competitions_enabled?: boolean;
+  /** Defaults to 'draft' if omitted. */
+  cohort_status?: CohortStatus;
 }
 
 export interface UpdateCohortPayload {
@@ -338,6 +351,69 @@ export interface UpdateCohortPayload {
   end_date?: string;
   schedule_id?: string;
   competitions_enabled?: boolean;
+  /** Status transitions (e.g. proposed → confirmed); admin-only. */
+  cohort_status?: CohortStatus;
+}
+
+// ---------------------------------------------------------------------------
+// Bulk assignment (§6–7)
+// ---------------------------------------------------------------------------
+
+/** Which rating to use when match_level is true. Default training_rating. */
+export type BulkAssignLevelMetric = 'training_rating' | 'player_rating';
+
+/**
+ * Parameters for bulk assigning unassigned players to new cohorts.
+ * One schedule for all bulk-created cohorts (first version).
+ */
+export interface BulkAssignParams {
+  /** Cohort name prefix; names become "${name_prefix} ${name_start_index}", "${name_prefix} ${name_start_index + 1}", ... */
+  name_prefix: string;
+  /** First cohort number (e.g. 1 → "Cohort 1", "Cohort 2"). */
+  name_start_index: number;
+  /** Target size per cohort (last cohort may be smaller if remainder allowed and required_full_cohort is false). */
+  players_per_cohort: number;
+  /** If true, only create cohorts that are full (size >= players_per_cohort); drop remainder. */
+  required_full_cohort: boolean;
+  /** Start date (YYYY-MM-DD) for all cohorts. */
+  start_date: string;
+  /** Duration in days; end_date = start_date + duration_days. */
+  duration_days: number;
+  /** If true, group players by skill (level_metric) with level_proximity; if false, assign in rating order. */
+  match_level: boolean;
+  /** When match_level true: max rating range within a cohort (players in same cohort have rating within this range). */
+  level_proximity: number;
+  /** Schedule id applied to all bulk-created cohorts. One schedule for all. */
+  schedule_id: string;
+  /** Which rating to use when match_level is true. Default training_rating. */
+  level_metric?: BulkAssignLevelMetric;
+  /** Level applied to all bulk-created cohorts (default 0). */
+  level?: number;
+}
+
+/** One created cohort in the result of bulkAssignPlayersToCohorts. */
+export interface BulkAssignResultCohort {
+  cohortId: string;
+  cohortName: string;
+  playerIds: string[];
+}
+
+/** Result of bulkAssignPlayersToCohorts: created cohorts and their member ids. */
+export interface BulkAssignResult {
+  cohorts: BulkAssignResultCohort[];
+}
+
+/** One cohort in the result of the bulk-assign grouping (before DB create). */
+export interface BulkAssignGroup {
+  name: string;
+  playerIds: string[];
+}
+
+/** Result of the grouping algorithm only (no DB). Used by bulkAssignPlayersToCohorts to create cohorts. */
+export interface BulkAssignPreview {
+  groups: BulkAssignGroup[];
+  /** end_date for all cohorts: start_date + duration_days. */
+  end_date: string;
 }
 
 export interface GenerateCalendarOptions {
@@ -373,23 +449,33 @@ export type SessionDisplayStatus = 'Completed' | 'Due' | 'Future';
 
 export interface SessionWithStatus extends NextOrAvailableSession {
   status: SessionDisplayStatus;
-  /** Session score % when completed; null for Due/Future or if not yet saved. */
+  /** Session score % when completed; null for Due/Future or if not yet saved. With replay: average of all completed runs for this calendar. */
   session_score?: number | null;
+  /** Number of times the player has executed this session (run count for this calendar). */
+  attempt_count?: number;
 }
 
 // ---------------------------------------------------------------------------
 // P4 Game Engine (session_runs, dart_scores, player_routine_scores)
 // ---------------------------------------------------------------------------
 
+/** Run type: scheduled = calendar/session (or replay); free = platinum ad-hoc single routine. */
+export type SessionRunType = 'scheduled' | 'free';
+
 export interface SessionRun {
   id: string;
   player_id: string;
-  calendar_id: string;
+  /** Set for scheduled runs; null for free runs. */
+  calendar_id: string | null;
   started_at: string;
   completed_at: string | null;
   session_score: number | null;
   /** Player level at session start; used for checkout expected_successes. */
   player_level_snapshot?: number | null;
+  /** scheduled = calendar-based; free = ad-hoc single routine (platinum). */
+  run_type?: SessionRunType;
+  /** For run_type = 'free': the routine being practiced. Null for scheduled. */
+  routine_id?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -535,7 +621,8 @@ export interface ListCompletedSessionRunsOptions {
 /** Options for getTrendForPlayer. */
 export interface GetTrendForPlayerOptions {
   type: 'session_score' | 'routine';
-  routineName?: string; // required when type === 'routine'
+  routineName?: string; // when type === 'routine', use name match (ilike)
+  routineType?: RoutineType; // when type === 'routine', use SS/SD/ST/C from routine_steps
   /** Number of days; null/undefined = all time (no date filter). P8: 90 and all-time for Gold/Platinum. */
   windowDays?: number | null;
 }

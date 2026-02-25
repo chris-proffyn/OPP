@@ -24,6 +24,7 @@ const sampleCohort: Cohort = {
   end_date: '2026-04-12',
   schedule_id: 'sched-1',
   competitions_enabled: true,
+  cohort_status: 'proposed',
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
 };
@@ -54,6 +55,7 @@ describe('getCohortById', () => {
   it('returns cohort with schedule_name and member_count when found', async () => {
     const client = createMockClient([
       adminResponse(),
+      { data: { id: 'cohort-1', cohort_status: 'proposed', start_date: '2026-03-02', end_date: '2026-04-12' }, error: null },
       { data: sampleCohort, error: null },
       { data: { name: 'Beginner Daily' }, error: null },
       { data: null, error: null, count: 3 },

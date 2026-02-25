@@ -4,7 +4,6 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import {
   createPlayerCheckoutVariation,
   deletePlayerCheckoutVariation,
@@ -14,6 +13,7 @@ import {
 } from '@opp/data';
 import type { PlayerCheckoutVariation } from '@opp/data';
 import { useSupabase } from '../context/SupabaseContext';
+import { NavButton } from '../components/NavButton';
 
 const tableStyle: React.CSSProperties = {
   borderCollapse: 'collapse',
@@ -31,8 +31,6 @@ const inputStyle: React.CSSProperties = {
   padding: '0.25rem 0.35rem',
   boxSizing: 'border-box',
 };
-const linkStyle: React.CSSProperties = { color: 'inherit', fontWeight: 500 };
-
 const TOTAL_MIN = 2;
 const TOTAL_MAX = 170;
 
@@ -188,7 +186,7 @@ export function ProfileCheckoutVariationsPage() {
   return (
     <div>
       <p>
-        <Link to="/profile" style={linkStyle}>← Profile</Link>
+        <NavButton to="/profile" variant="secondary">← Profile</NavButton>
       </p>
       <h1>Checkout preferences</h1>
       <p style={{ marginBottom: '1rem', color: '#666', fontSize: '0.9rem' }}>
